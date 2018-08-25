@@ -1,0 +1,170 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-family: sans-serif;
+}
+
+.time-slider {
+    display: flex;
+    flex-direction: row;
+    margin: 2rem;
+}
+
+.time-slider .noUi-target {
+    flex: 1;
+    margin-right: 2rem;
+}
+
+.range-slider {
+    display: flex;
+    flex-direction: row;
+    margin: 2rem;
+
+    margin-top: 4rem;
+}
+
+.range-slider .noUi-target {
+    flex: 1;
+    margin: 0 2rem;
+}
+
+
+.time-slider .noUi-origin.is-off-timeline {
+    display: none;
+}
+
+/* Temp scale style just so I can see it better while debugging */
+.time-slider .noUi-value.noUi-value-large {
+    font-size: 50%;
+    line-height: 2.5;
+}
+
+
+/* mockup of slider styles (maya-ish) */
+
+.range-slider .noUi-horizontal .noUi-handle-lower {
+    box-shadow: none;
+    border: none;
+    background: red;
+
+    top: 2px;
+    right: -15px !important;
+
+    width: 13px;
+    height: 13px;
+}
+
+.range-slider .noUi-horizontal .noUi-handle-upper {
+    box-shadow: none;
+    border: none;
+    background: red;
+
+    top: 2px;
+    right: 2px !important;
+
+    width: 13px;
+    height: 13px;
+}
+
+.noUi-horizontal .noUi-handle::before,
+.noUi-horizontal .noUi-handle::after {
+    content: none;
+}
+
+.time-slider .noUi-horizontal .noUi-handle {
+    box-shadow: none;
+
+    border: none;
+    background: red;
+    width: 5px;
+
+    right: -3px !important;
+
+    cursor: ew-resize;
+}
+
+.draw canvas {
+    border: 1px solid red;
+}
+
+.draw-temp {
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    outline: none;
+}
+
+.draw {
+    position: relative;
+    margin: 2rem;
+}
+
+.draw-tools {
+    border: 1px solid green;
+    display: inline-block;
+
+    position: absolute;
+    right: 0;
+
+    background: grey;
+
+    width: 4em;
+    padding: 0.5em;
+}
+
+.draw-pen {
+    display: block;
+    height: 30px;
+    width: 30px;
+
+    border: 4px solid white;
+    border-radius: 15px;
+
+    margin-bottom: 0.5em;
+}
+
+.draw-pen.is-active {
+
+}
+
+.draw-tools ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.draw-eraser,
+.draw-clear,
+.draw-undo,
+.draw-redo {
+    display: block;
+    width: 100%;
+
+    margin-bottom: 0.5em;
+}
+
+.draw-line-width {
+    -webkit-appearance: slider-vertical;
+    float: right;
+    width: 1.5em;
+}
+
+.draw-history {
+    list-style: none;
+    margin: 0;
+    padding: 1em;
+
+    border: 1px solid green;
+    background: grey;
+    color: white;
+
+    display: inline-block;
+
+    max-height: 10em;
+    overflow-y: scroll;
+}
+
+li.is-undone {
+    color: #CCC;
+}
