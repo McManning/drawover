@@ -27,23 +27,29 @@ class Draw extends React.Component {
 
         this.state = {
             // Active tool information
-            tool: 'pen',
-            color: '#FF0000',
+            tool: null,
+            color: null,
             lineWidth: 5,
+
+            previousTool: 'pen',
 
             // Undo stack / serializable stroke info
             history: [],
 
             // Where we are in the undo stack
-            historyIndex: 0
+            historyIndex: 0,
         };
 
         // These are kept out of state since they're localized
         // only to the canvas element and updated very frequently
         this.points = [];
-        this.drawing = false;
+        this.dragging = false;
         this.mouseX = 0;
         this.mouseY = 0;
+
+        this.tx = 0;
+        this.ty = 0;
+        this.sc = 1;
 
         // Worker SVG for doing matrix math
         this.svg = document.createElementNS(
@@ -60,34 +66,73 @@ class Draw extends React.Component {
         this.onMouseMove = this.onMouseMove.bind(this);
         this.onMouseUp = this.onMouseUp.bind(this);
         this.onMouseDown = this.onMouseDown.bind(this);
+        this.onWheel = this.onWheel.bind(this);
         this.onKeyDown = this.onKeyDown.bind(this);
+        this.onKeyUp = this.onKeyUp.bind(this);
         this.onChangeLineWidth = this.onChangeLineWidth.bind(this);
-        this.clear = this.clear.bind(this);
+        this.onClear = this.onClear.bind(this);
         this.undo = this.undo.bind(this);
         this.redo = this.redo.bind(this);
     }
 
     componentDidMount() {
         this.setPen(this.state.color);
-
-        this.translate(30, 30);
     }
 
     /**
-     * Copy the contents of the temp canvas to the main and clear temp
+     * Watch for component state updates to update associated canvas elements
      */
-    copyToFrontCanvas() {
-        const ctx = this.canvas.current.getContext('2d');
-
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.drawImage(this.temp.current, 0, 0);
-
-        this.clearTempCanvas();
+    componentDidUpdate(prevProps, prevState) {
+        // On tool change or line width change, update our custom cursor to match
+        if (prevState.tool !== this.state.tool || prevState.lineWidth !== this.state.lineWidth) {
+            this.updateCursorSVG();
+        }
     }
 
     clearTempCanvas() {
-        const ctx = this.temp.current.getContext('2d');
-        ctx.clearRect(0, 0, this.temp.current.width, this.temp.current.height);
+        const tl = this.transformedPoint(0, 0);
+        const scale = 1 / this.sc;
+
+        this.tempContext.clearRect(
+            tl.x,
+            tl.y,
+            this.temp.current.width * scale,
+            this.temp.current.height * scale
+        );
+    }
+
+    /**
+     * End the current line being drawn with the pen or eraser tools
+     *
+     * This will copy whatever is rendered on the temp canvas
+     * onto the main canvas, and clear the temp.
+     */
+    endCurrentLine() {
+        if (!this.points.length) {
+            return;
+        }
+
+        const ctx = this.canvasContext;
+
+        // Add line to our history stack
+        this.pushHistory(
+            this.state.tool,
+            this.state.color,
+            this.state.lineWidth,
+            this.points
+        );
+
+        // Copy temp canvas contents onto the composite canvas
+        ctx.globalCompositeOperation = 'source-over';
+
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.drawImage(this.temp.current, 0, 0);
+        ctx.restore();
+
+        // Reset everything
+        this.clearTempCanvas();
+        this.points = [];
     }
 
     /**
@@ -97,10 +142,18 @@ class Draw extends React.Component {
      */
     onMouseDown(e) {
         if (e.buttons === 1) {
-            this.drawing = true;
+            this.dragging = true;
+        }
 
+        // TODO: "!transform" is gross
+        if (this.dragging && this.state.tool !== 'transform') {
             this.trackMouse(e);
             this.draw();
+        }
+
+        if (this.dragging && this.state.tool === 'transform') {
+            this.trackMouse(e);
+            this.dragStart = this.transformedPoint(this.mouseX, this.mouseY);
         }
     }
 
@@ -114,20 +167,12 @@ class Draw extends React.Component {
      * @param {SyntheticEvent} e
      */
     onMouseUp(e) {
-        if (this.drawing) {
-            this.drawing = false;
+        if (this.dragging) {
+            this.dragging = false;
 
-            // Add line to our history stack
-            this.pushHistory(
-                this.state.tool,
-                this.state.color,
-                this.state.lineWidth,
-                this.points
-            );
-
-            // Copy the current line to the main canvas and clear
-            this.copyToFrontCanvas();
-            this.points = [];
+            if (this.state.tool !== 'transform') {
+                this.endCurrentLine();
+            }
         }
     }
 
@@ -137,14 +182,56 @@ class Draw extends React.Component {
      * @param {SyntheticEvent} e
      */
     onMouseMove(e) {
-        // If primary mouse is down while they're dragging in, start drawing.
-        if (e.buttons === 1 && !this.drawing) {
-            this.drawing = true;
+        // If they had the primary mouse button down while dragging INTO
+        // the canvas, but didn't press it down while already on the canvas,
+        // flag as a drag event
+        if (e.buttons === 1) {
+            this.dragging = true;
         }
 
-        if (this.drawing) {
+        if (this.dragging && this.state.tool !== 'transform') {
             this.trackMouse(e);
             this.draw();
+        }
+
+        if (this.dragging && this.state.tool === 'transform') {
+            // Factor in scaling to transform uniformly across
+            // different canvas scales
+            const scale = 1 / this.sc;
+
+            this.translate(
+                e.nativeEvent.movementX * scale,
+                e.nativeEvent.movementY * scale
+            );
+
+            this.redraw(this.state.historyIndex);
+        }
+    }
+
+    /**
+     * Zoom the canvas in/out on the point the mouse is hovering over
+     */
+    onWheel(e) {
+        // Handle zoom tool
+        if (this.state.tool === 'transform' && e.deltaY !== 0) {
+            this.trackMouse(e);
+
+            const point = this.transformedPoint(
+                0,
+                0
+            );
+
+            point.x += this.canvas.current.width / this.sc / 2;
+            point.y += this.canvas.current.height / this.sc / 2;
+
+            this.translate(point.x, point.y);
+            this.scale(Math.pow(1.1, e.deltaY / 100));
+            this.translate(-point.x, -point.y);
+
+            this.redraw(this.state.historyIndex);
+
+            // Prevent page scrolling while zooming
+            e.preventDefault();
         }
     }
 
@@ -156,6 +243,23 @@ class Draw extends React.Component {
             this.undo();
         } else if (e.keyCode === 89 && e.ctrlKey) {
             this.redo();
+        } else if (e.keyCode === 16) { // shift
+            if (this.state.tool !== 'transform') {
+                this.endCurrentLine();
+
+                this.setState({
+                    previousTool: this.state.tool,
+                    tool: 'transform'
+                });
+            }
+        }
+    }
+
+    onKeyUp(e) {
+        if (e.keyCode === 16) {
+            this.setState({
+                tool: this.state.previousTool
+            });
         }
     }
 
@@ -174,16 +278,23 @@ class Draw extends React.Component {
         this.mouseY = point.y;
     }
 
+    clear() {
+        const ctx = this.canvasContext;
+
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, this.canvas.current.width, this.canvas.current.height);
+        ctx.restore();
+    }
+
     /**
      * Redraw the main canvas up to `historyIndex`
      */
     redraw(historyIndex) {
         const ctx = this.canvasContext;
-        
-        this.pushTransform();
-        this.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, this.canvas.current.width, this.canvas.current.height);
-        
+
+        this.clear();
+
         // Run through the history and redraw each tool onto the main canvas
         for (let i = 0; i < historyIndex; i++) {
             const event = this.state.history[i];
@@ -205,25 +316,10 @@ class Draw extends React.Component {
                     'source-over'
                 );
             } else if (event.tool === 'clear') {
-                ctx.clearRect(0, 0, this.canvas.current.width, this.canvas.current.height);
+                this.clear();
             }
         }
-    
-        this.popTransform();
     }
-
-    // /**
-    //  * Draw the given "rule" to the canvas
-    //  *
-    //  * @param {object} role {tool, color, lineWidth, points}
-    //  */
-    // draw(ctx, rule) {
-    //     if (rule.tool === 'pen') {
-    //         this.pen(ctx, rule.color, rule.lineWidth, rule.points);
-    //     } else {
-    //         this.erase(ctx, rule.lineWidth, rule.points);
-    //     }
-    // }
 
     pen(ctx, color, lineWidth, points, operation) {
         let cpx, cpy, x, y;
@@ -254,8 +350,6 @@ class Draw extends React.Component {
         }
 
         ctx.beginPath();
-        // ctx.globalCompositeOperation = 'source-over';
-
         ctx.moveTo(points[0].x, points[0].y);
 
         for (i; i < points.length - 2; i++) {
@@ -280,38 +374,6 @@ class Draw extends React.Component {
         ctx.stroke();
     }
 
-    erase(ctx, lineWidth, points) {
-        const len = points.length;
-
-        ctx.lineWidth = lineWidth;
-        ctx.lineJoin = 'round';
-        ctx.lineCap = 'round';
-
-        ctx.beginPath();
-        ctx.globalCompositeOperation = 'destination-out';
-
-        if (points.length < 2) {
-            ctx.arc(
-                points[len - 1].x,
-                points[len - 1].y,
-                lineWidth / 2,
-                0,
-                Math.PI * 2
-            );
-
-            ctx.fill();
-            ctx.closePath();
-            return;
-        }
-
-        // Draw a curve for the last two points
-        const control = points[len - 2];
-        const end = points[len - 1];
-
-        ctx.quadraticCurveTo(control.x, control.y, end.x, end.y);
-        ctx.stroke();
-    }
-
     /**
      * Draw with the currently selected tool
      */
@@ -327,7 +389,7 @@ class Draw extends React.Component {
             // The edges are slightly more jagged and overdraw themselves
             // while moving the pen, but that's typically alright.
             this.pen(
-                this.canvas.current.getContext('2d'),
+                this.canvasContext,
                 '',
                 this.state.lineWidth,
                 this.points,
@@ -339,7 +401,7 @@ class Draw extends React.Component {
             this.clearTempCanvas();
 
             this.pen(
-                this.temp.current.getContext('2d'),
+                this.tempContext,
                 this.state.color,
                 this.state.lineWidth,
                 this.points,
@@ -355,14 +417,14 @@ class Draw extends React.Component {
         this.setState({
             tool: 'pen',
             color: color
-        }, this.rebuildCursorSVG());
+        });
     }
 
     setEraser() {
         this.setState({
             tool: 'erase',
             color: ''
-        }, this.rebuildCursorSVG());
+        });
     }
 
     onChangeLineWidth(e) {
@@ -374,7 +436,7 @@ class Draw extends React.Component {
 
         this.setState({
             lineWidth: e.target.value
-        }, this.rebuildCursorSVG);
+        });
     }
 
     pushHistory(tool, color, lineWidth, points) {
@@ -469,20 +531,26 @@ class Draw extends React.Component {
     /**
      * Clear the composite canvas
      */
-    clear() {
-        const ctx = this.canvas.current.getContext('2d');
-        ctx.clearRect(0, 0, this.canvas.current.width, this.canvas.current.height);
-
+    onClear() {
+        this.clear();
         this.pushHistory('clear', '', '', []);
     }
 
     /**
      * Load up a new SVG as our custom cursor based on the active tool
      */
-    rebuildCursorSVG() {
-        const size = parseInt(this.state.lineWidth, 10);
+    updateCursorSVG() {
+        const size = parseInt(this.state.lineWidth * this.sc, 10);
         const rad = size / 2;
         const padding = 2;
+
+        if (this.state.tool === 'transform') {
+            this.setState({
+                cursor: this.transforming ? 'grabbing' : 'grab'
+            });
+
+            return;
+        }
 
         // Photoshop-esque circle that matches the line width.
         // It doesn't invert itself on dark backgrounds, so instead we give it
@@ -562,26 +630,25 @@ class Draw extends React.Component {
      * @param {integer} y
      */
     translate(x, y) {
-        this.setState({
-            translate: {
-                x,
-                y
-            }
-        });
+        this.tx += x;
+        this.ty += y;
 
         this.transform = this.transform.translate(x, y);
+
         this.canvasContext.translate(x, y);
         this.tempContext.translate(x, y);
     }
 
     scale(factor) {
+        this.sc *= factor;
+
         this.setState({
-            scale: factor
+            scale: this.sc
         });
 
         this.transform = this.transform.scale(factor);
-        this.canvasContext.scale(factor);
-        this.tempContext.scale(factor);
+        this.canvasContext.scale(factor, factor);
+        this.tempContext.scale(factor, factor);
     }
 
     /**
@@ -589,20 +656,14 @@ class Draw extends React.Component {
      * in DOM-space
      */
     zoom(factor, x, y) {
-        let point = this.transformedPoint(x, y);
-
-        this.translate(point.x, point.y);
+        this.translate(x, y);
         this.scale(Math.pow(1.1, factor));
-        this.translate(-point.x, -point.y);
+        this.translate(-x, -y);
 
         this.redraw();
     }
 
     rotate(radians) {
-        this.setState({
-            rotate: radians
-        });
-
         this.transform = this.transform.rotate(radians * 180 / Math.PI);
         this.canvasContext.rotate(radians);
         this.tempContext.rotate(radians);
@@ -639,6 +700,8 @@ class Draw extends React.Component {
                     onMouseUp={this.onMouseUp}
                     onMouseLeave={this.onMouseUp}
                     onKeyDown={this.onKeyDown}
+                    onKeyUp={this.onKeyUp}
+                    onWheel={this.onWheel}
                     style={{
                         cursor: this.state.cursor
                     }}
@@ -666,7 +729,7 @@ class Draw extends React.Component {
                     <button className={'draw-eraser ' + (tool === 'erase' ? 'is-active' : '')}
                         onClick={() => this.setEraser()}>Eraser</button>
 
-                    <button className="draw-clear" onClick={this.clear}>Clear</button>
+                    <button className="draw-clear" onClick={this.onClear}>Clear</button>
 
                     <button className="draw-undo" onClick={this.undo}>Undo</button>
                     <button className="draw-redo" onClick={this.redo}>Redo</button>
@@ -686,6 +749,8 @@ class Draw extends React.Component {
                         </li>
                     )}
                 </ul>
+
+                Scale: {this.state.scale}
             </div>
         );
     }
