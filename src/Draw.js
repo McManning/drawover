@@ -45,6 +45,15 @@ class Draw extends React.Component {
         this.mouseX = 0;
         this.mouseY = 0;
 
+        // Worker SVG for doing matrix math
+        this.svg = document.createElementNS(
+            'http://www.w3.org/2000/svg',
+            'svg'
+        );
+
+        this.transform = this.svg.createSVGMatrix();
+        this.transformStack = [];
+
         this.canvas = React.createRef();
         this.temp = React.createRef();
 
@@ -60,6 +69,8 @@ class Draw extends React.Component {
 
     componentDidMount() {
         this.setPen(this.state.color);
+
+        this.translate(30, 30);
     }
 
     /**
@@ -154,18 +165,25 @@ class Draw extends React.Component {
      * @param {SyntheticEvent} e
      */
     trackMouse(e) {
-        this.mouseX = e.nativeEvent.offsetX;
-        this.mouseY = e.nativeEvent.offsetY;
+        const point = this.transformedPoint(
+            e.nativeEvent.offsetX,
+            e.nativeEvent.offsetY
+        );
+
+        this.mouseX = point.x;
+        this.mouseY = point.y;
     }
 
     /**
      * Redraw the main canvas up to `historyIndex`
      */
     redraw(historyIndex) {
-        const ctx = this.canvas.current.getContext('2d');
-
+        const ctx = this.canvasContext;
+        
+        this.pushTransform();
+        this.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, this.canvas.current.width, this.canvas.current.height);
-
+        
         // Run through the history and redraw each tool onto the main canvas
         for (let i = 0; i < historyIndex; i++) {
             const event = this.state.history[i];
@@ -190,6 +208,8 @@ class Draw extends React.Component {
                 ctx.clearRect(0, 0, this.canvas.current.width, this.canvas.current.height);
             }
         }
+    
+        this.popTransform();
     }
 
     // /**
@@ -498,6 +518,110 @@ class Draw extends React.Component {
         this.setState({
             cursor: `url("data:image/svg+xml,${encodeURI(svg)}") ${rad+padding} ${rad+padding}, crosshair`
         });
+    }
+
+    pushTransform() {
+        this.transformStack.push(
+            this.transform.translate(0, 0)
+        );
+
+        this.canvasContext.save();
+        this.tempContext.save();
+    }
+
+    popTransform() {
+        this.transform = this.transformStack.pop();
+        this.canvasContext.restore();
+        this.tempContext.restore();
+    }
+
+    setTransform(a, b, c, d, e, f) {
+        this.transform.a = a;
+        this.transform.b = b;
+        this.transform.c = c;
+        this.transform.d = d;
+        this.transform.e = e;
+        this.transform.f = f;
+
+        this.canvasContext.setTransform(a, b, c, d, e, f);
+        this.tempContext.setTransform(a, b, c, d, e, f);
+    }
+
+    get canvasContext() {
+        return this.canvas.current.getContext('2d');
+    }
+
+    get tempContext() {
+        return this.temp.current.getContext('2d');
+    }
+
+    /**
+     * Translate the canvas the specified distance (x, y)
+     *
+     * @param {integer} x
+     * @param {integer} y
+     */
+    translate(x, y) {
+        this.setState({
+            translate: {
+                x,
+                y
+            }
+        });
+
+        this.transform = this.transform.translate(x, y);
+        this.canvasContext.translate(x, y);
+        this.tempContext.translate(x, y);
+    }
+
+    scale(factor) {
+        this.setState({
+            scale: factor
+        });
+
+        this.transform = this.transform.scale(factor);
+        this.canvasContext.scale(factor);
+        this.tempContext.scale(factor);
+    }
+
+    /**
+     * Scale wrapper for focus zooming on a given (x, y)
+     * in DOM-space
+     */
+    zoom(factor, x, y) {
+        let point = this.transformedPoint(x, y);
+
+        this.translate(point.x, point.y);
+        this.scale(Math.pow(1.1, factor));
+        this.translate(-point.x, -point.y);
+
+        this.redraw();
+    }
+
+    rotate(radians) {
+        this.setState({
+            rotate: radians
+        });
+
+        this.transform = this.transform.rotate(radians * 180 / Math.PI);
+        this.canvasContext.rotate(radians);
+        this.tempContext.rotate(radians);
+    }
+
+    /**
+     * Convert a DOM-space point to canvas local space
+     *
+     * @param {integer} x
+     * @param {integer} y
+     */
+    transformedPoint(x, y) {
+        let point = this.svg.createSVGPoint();
+        point.x = x;
+        point.y = y;
+
+        return point.matrixTransform(
+            this.transform.inverse()
+        );
     }
 
     render() {
