@@ -655,8 +655,6 @@ class Draw extends React.Component {
      * in canvas-space
      */
     zoom(factor, x, y) {
-        this.redraw();
-
         this.translate(x, y);
         this.scale(factor);
         this.translate(-x, -y);
@@ -752,6 +750,12 @@ class Draw extends React.Component {
                 </ul>
 
                 Scale: {this.state.scale}
+
+                <ul>
+                    <li>Translate: {this.props.translate.x}, {this.props.translate.y}</li>
+                    <li>Scale: {this.props.scale}</li>
+                    <li>Rotate: {this.props.rotate}</li>
+                </ul>
             </div>
         );
     }
@@ -759,7 +763,14 @@ class Draw extends React.Component {
 
 Draw.defaultProps = {
     width: 720,
-    height: 480
-}
+    height: 480,
+
+    translate: {
+        x: 0,
+        y: 0
+    },
+    scale: 1,
+    rotate: 0
+};
 
 export default Draw;
