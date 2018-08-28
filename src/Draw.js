@@ -214,10 +214,18 @@ class Draw extends React.Component {
      */
     onWheel(e) {
         // Handle zoom tool
-        if (this.state.tool === 'transform' && e.deltaY !== 0) {
+        if (this.state.tool === 'transform' && (e.deltaY !== 0 || e.deltaX !== 0)) {
             this.trackMouse(e);
 
-            const factor = Math.pow(1.1, e.deltaY / 100);
+            // Get the sign of the scroll wheel - as we don't want actual pixel-level scroll
+            let sign = Math.sign(e.deltaY);
+
+            // Fallback on X scroll for mice with inverted wheel directions
+            if (sign === 0) {
+                sign = Math.sign(e.deltaX);
+            }
+
+            const factor = Math.pow(1.1, sign);
             this.zoom(factor, this.mouseX, this.mouseY);
 
             // Prevent page scrolling while zooming
@@ -703,7 +711,7 @@ class Draw extends React.Component {
                 <canvas ref={this.canvas} className="draw-canvas"
                     width={this.props.width} height={this.props.height}></canvas>
 
-                <div class="draw-tools">
+                <div className="draw-tools">
                     <input type="range" min="1" max="100"
                         className="draw-line-width"
                         value={lineWidth}
