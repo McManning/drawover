@@ -76,7 +76,7 @@ class Draw extends React.Component {
     }
 
     componentDidMount() {
-        this.setPen(this.state.color);
+        this.setPen('#000000');
     }
 
     /**
@@ -189,8 +189,9 @@ class Draw extends React.Component {
             this.dragging = true;
         }
 
+        this.trackMouse(e);
+
         if (this.dragging && this.state.tool !== 'transform') {
-            this.trackMouse(e);
             this.draw();
         }
 
@@ -216,19 +217,8 @@ class Draw extends React.Component {
         if (this.state.tool === 'transform' && e.deltaY !== 0) {
             this.trackMouse(e);
 
-            const point = this.transformedPoint(
-                0,
-                0
-            );
-
-            point.x += this.canvas.current.width / this.sc / 2;
-            point.y += this.canvas.current.height / this.sc / 2;
-
-            this.translate(point.x, point.y);
-            this.scale(Math.pow(1.1, e.deltaY / 100));
-            this.translate(-point.x, -point.y);
-
-            this.redraw(this.state.historyIndex);
+            const factor = Math.pow(1.1, e.deltaY / 100);
+            this.zoom(factor, this.mouseX, this.mouseY);
 
             // Prevent page scrolling while zooming
             e.preventDefault();
@@ -546,7 +536,7 @@ class Draw extends React.Component {
 
         if (this.state.tool === 'transform') {
             this.setState({
-                cursor: this.transforming ? 'grabbing' : 'grab'
+                cursor: 'grab'
             });
 
             return;
@@ -640,7 +630,8 @@ class Draw extends React.Component {
     }
 
     scale(factor) {
-        this.sc *= factor;
+        // this.sc = Math.max(0.1, Math.min(this.sc * factor, 2.0));
+        this.sc = this.sc * factor;
 
         this.setState({
             scale: this.sc
@@ -653,14 +644,16 @@ class Draw extends React.Component {
 
     /**
      * Scale wrapper for focus zooming on a given (x, y)
-     * in DOM-space
+     * in canvas-space
      */
     zoom(factor, x, y) {
+        this.redraw();
+
         this.translate(x, y);
-        this.scale(Math.pow(1.1, factor));
+        this.scale(factor);
         this.translate(-x, -y);
 
-        this.redraw();
+        this.redraw(this.state.historyIndex);
     }
 
     rotate(radians) {
