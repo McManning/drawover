@@ -8,6 +8,13 @@ import registerServiceWorker from './registerServiceWorker';
 
 import App from './App';
 import Draw from './Draw';
+import Transform from './Transform';
 
-ReactDOM.render(<Draw />, document.getElementById('root'));
+ReactDOM.render(
+    <Transform>
+        <Draw />
+    </Transform>,
+    document.getElementById('root')
+);
+
 registerServiceWorker();
