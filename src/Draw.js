@@ -47,18 +47,9 @@ class Draw extends React.Component {
         this.mouseX = 0;
         this.mouseY = 0;
 
-        this.tx = 0;
-        this.ty = 0;
-        this.sc = 1;
-
-        // Worker SVG for doing matrix math
-        this.svg = document.createElementNS(
-            'http://www.w3.org/2000/svg',
-            'svg'
-        );
-
-        this.transform = this.svg.createSVGMatrix();
-        this.transformStack = [];
+        // Worker SVG & matrix for doing matrix math
+        this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        this.matrix = this.svg.createSVGMatrix();
 
         this.canvas = React.createRef();
         this.temp = React.createRef();
@@ -66,9 +57,7 @@ class Draw extends React.Component {
         this.onMouseMove = this.onMouseMove.bind(this);
         this.onMouseUp = this.onMouseUp.bind(this);
         this.onMouseDown = this.onMouseDown.bind(this);
-        this.onWheel = this.onWheel.bind(this);
         this.onKeyDown = this.onKeyDown.bind(this);
-        this.onKeyUp = this.onKeyUp.bind(this);
         this.onChangeLineWidth = this.onChangeLineWidth.bind(this);
         this.onClear = this.onClear.bind(this);
         this.undo = this.undo.bind(this);
@@ -77,6 +66,13 @@ class Draw extends React.Component {
 
     componentDidMount() {
         this.setPen('#000000');
+
+        // Set initial canvas transformation from props
+        this.transform(
+            this.props.translate,
+            this.props.scale,
+            this.props.rotate
+        );
     }
 
     /**
@@ -85,13 +81,26 @@ class Draw extends React.Component {
     componentDidUpdate(prevProps, prevState) {
         // On tool change or line width change, update our custom cursor to match
         if (prevState.tool !== this.state.tool || prevState.lineWidth !== this.state.lineWidth) {
-            this.updateCursorSVG();
+            this.redrawCursorSVG();
+        }
+
+        // If any of the transformation props change, re-transform
+        if (prevProps.translate.x !== this.props.translate.x ||
+            prevProps.translate.y !== this.props.translate.y ||
+            prevProps.scale !== this.props.scale ||
+            prevProps.rotate !== this.props.rotate
+        ) {
+            this.transform(
+                this.props.translate,
+                this.props.scale,
+                this.props.rotate
+            );
         }
     }
 
     clearTempCanvas() {
         const tl = this.transformedPoint(0, 0);
-        const scale = 1 / this.sc;
+        const scale = 1 / this.props.scale;
 
         this.tempContext.clearRect(
             tl.x,
@@ -145,15 +154,9 @@ class Draw extends React.Component {
             this.dragging = true;
         }
 
-        // TODO: "!transform" is gross
-        if (this.dragging && this.state.tool !== 'transform') {
+        if (this.dragging) {
             this.trackMouse(e);
             this.draw();
-        }
-
-        if (this.dragging && this.state.tool === 'transform') {
-            this.trackMouse(e);
-            this.dragStart = this.transformedPoint(this.mouseX, this.mouseY);
         }
     }
 
@@ -169,10 +172,7 @@ class Draw extends React.Component {
     onMouseUp(e) {
         if (this.dragging) {
             this.dragging = false;
-
-            if (this.state.tool !== 'transform') {
-                this.endCurrentLine();
-            }
+            this.endCurrentLine();
         }
     }
 
@@ -191,45 +191,8 @@ class Draw extends React.Component {
 
         this.trackMouse(e);
 
-        if (this.dragging && this.state.tool !== 'transform') {
+        if (this.dragging) {
             this.draw();
-        }
-
-        if (this.dragging && this.state.tool === 'transform') {
-            // Factor in scaling to transform uniformly across
-            // different canvas scales
-            const scale = 1 / this.sc;
-
-            this.translate(
-                e.nativeEvent.movementX * scale,
-                e.nativeEvent.movementY * scale
-            );
-
-            this.redraw(this.state.historyIndex);
-        }
-    }
-
-    /**
-     * Zoom the canvas in/out on the point the mouse is hovering over
-     */
-    onWheel(e) {
-        // Handle zoom tool
-        if (this.state.tool === 'transform' && (e.deltaY !== 0 || e.deltaX !== 0)) {
-            this.trackMouse(e);
-
-            // Get the sign of the scroll wheel - as we don't want actual pixel-level scroll
-            let sign = Math.sign(e.deltaY);
-
-            // Fallback on X scroll for mice with inverted wheel directions
-            if (sign === 0) {
-                sign = Math.sign(e.deltaX);
-            }
-
-            const factor = Math.pow(1.1, sign);
-            this.zoom(factor, this.mouseX, this.mouseY);
-
-            // Prevent page scrolling while zooming
-            e.preventDefault();
         }
     }
 
@@ -241,23 +204,6 @@ class Draw extends React.Component {
             this.undo();
         } else if (e.keyCode === 89 && e.ctrlKey) {
             this.redo();
-        } else if (e.keyCode === 16) { // shift
-            if (this.state.tool !== 'transform') {
-                this.endCurrentLine();
-
-                this.setState({
-                    previousTool: this.state.tool,
-                    tool: 'transform'
-                });
-            }
-        }
-    }
-
-    onKeyUp(e) {
-        if (e.keyCode === 16) {
-            this.setState({
-                tool: this.state.previousTool
-            });
         }
     }
 
@@ -537,18 +483,10 @@ class Draw extends React.Component {
     /**
      * Load up a new SVG as our custom cursor based on the active tool
      */
-    updateCursorSVG() {
-        const size = parseInt(this.state.lineWidth * this.sc, 10);
+    redrawCursorSVG() {
+        const size = parseInt(this.state.lineWidth * this.props.scale, 10);
         const rad = size / 2;
         const padding = 2;
-
-        if (this.state.tool === 'transform') {
-            this.setState({
-                cursor: 'grab'
-            });
-
-            return;
-        }
 
         // Photoshop-esque circle that matches the line width.
         // It doesn't invert itself on dark backgrounds, so instead we give it
@@ -586,28 +524,13 @@ class Draw extends React.Component {
         });
     }
 
-    pushTransform() {
-        this.transformStack.push(
-            this.transform.translate(0, 0)
-        );
-
-        this.canvasContext.save();
-        this.tempContext.save();
-    }
-
-    popTransform() {
-        this.transform = this.transformStack.pop();
-        this.canvasContext.restore();
-        this.tempContext.restore();
-    }
-
     setTransform(a, b, c, d, e, f) {
-        this.transform.a = a;
-        this.transform.b = b;
-        this.transform.c = c;
-        this.transform.d = d;
-        this.transform.e = e;
-        this.transform.f = f;
+        this.matrix.a = a;
+        this.matrix.b = b;
+        this.matrix.c = c;
+        this.matrix.d = d;
+        this.matrix.e = e;
+        this.matrix.f = f;
 
         this.canvasContext.setTransform(a, b, c, d, e, f);
         this.tempContext.setTransform(a, b, c, d, e, f);
@@ -621,51 +544,28 @@ class Draw extends React.Component {
         return this.temp.current.getContext('2d');
     }
 
-    /**
-     * Translate the canvas the specified distance (x, y)
-     *
-     * @param {integer} x
-     * @param {integer} y
-     */
-    translate(x, y) {
-        this.tx += x;
-        this.ty += y;
+    transform(translate, scale, rotate) {
+        const canvasCtx = this.canvasContext;
+        const tempCtx = this.tempContext;
 
-        this.transform = this.transform.translate(x, y);
+        // Reset transformation
+        this.setTransform(1, 0, 0, 1, 0, 0);
 
-        this.canvasContext.translate(x, y);
-        this.tempContext.translate(x, y);
-    }
+        // Apply affine transformations to all three matrices
+        this.matrix = this.matrix.translate(translate.x, translate.y);
+        this.matrix = this.matrix.scale(scale);
+        this.matrix = this.matrix.rotate(rotate * 180 / Math.PI);
 
-    scale(factor) {
-        // this.sc = Math.max(0.1, Math.min(this.sc * factor, 2.0));
-        this.sc = this.sc * factor;
+        canvasCtx.translate(translate.x, translate.y);
+        canvasCtx.scale(scale, scale);
+        canvasCtx.rotate(rotate);
 
-        this.setState({
-            scale: this.sc
-        });
-
-        this.transform = this.transform.scale(factor);
-        this.canvasContext.scale(factor, factor);
-        this.tempContext.scale(factor, factor);
-    }
-
-    /**
-     * Scale wrapper for focus zooming on a given (x, y)
-     * in canvas-space
-     */
-    zoom(factor, x, y) {
-        this.translate(x, y);
-        this.scale(factor);
-        this.translate(-x, -y);
+        tempCtx.translate(translate.x, translate.y);
+        tempCtx.scale(scale, scale);
+        tempCtx.rotate(rotate);
 
         this.redraw(this.state.historyIndex);
-    }
-
-    rotate(radians) {
-        this.transform = this.transform.rotate(radians * 180 / Math.PI);
-        this.canvasContext.rotate(radians);
-        this.tempContext.rotate(radians);
+        this.redrawCursorSVG();
     }
 
     /**
@@ -680,7 +580,7 @@ class Draw extends React.Component {
         point.y = y;
 
         return point.matrixTransform(
-            this.transform.inverse()
+            this.matrix.inverse()
         );
     }
 
@@ -699,8 +599,6 @@ class Draw extends React.Component {
                     onMouseUp={this.onMouseUp}
                     onMouseLeave={this.onMouseUp}
                     onKeyDown={this.onKeyDown}
-                    onKeyUp={this.onKeyUp}
-                    onWheel={this.onWheel}
                     style={{
                         cursor: this.state.cursor
                     }}
@@ -748,8 +646,6 @@ class Draw extends React.Component {
                         </li>
                     )}
                 </ul>
-
-                Scale: {this.state.scale}
 
                 <ul>
                     <li>Translate: {this.props.translate.x}, {this.props.translate.y}</li>
