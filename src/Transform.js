@@ -2,7 +2,7 @@
 import React from 'react';
 
 /**
- * Transformation component that controls transforms of children
+ * Component that controls matrix transforms of children
  *
  * All children are expected to have `translate`, `scale`, `rotate`
  * properties that are updated as this component accepts user input
@@ -13,6 +13,7 @@ import React from 'react';
  *  - Zoom (scale): Shift + Scroll Wheel
  *  - Rotate: TBD
  *
+ * Example:
  *  <Transform>
  *      <Draw ... />
  *      <Video ... />
@@ -25,12 +26,12 @@ class Transform extends React.Component {
         this.state = {
             // Translation - in pixels
             translate: {
-                x: 50,
-                y: 50
+                x: 0,
+                y: 0
             },
 
             // Scale - in pixels (2 = 2x2 pixels per source pixel)
-            scale: 0.5,
+            scale: 1,
 
             // Rotation - in radians
             rotate: 0,
@@ -45,123 +46,9 @@ class Transform extends React.Component {
         this.onKeyDownCapture = this.onKeyDownCapture.bind(this);
         this.onKeyUpCapture = this.onKeyUpCapture.bind(this);
 
-        // Worker SVG for doing matrix math
+        // Worker SVG & matrix for doing matrix math
         this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-
-        // Transformation matrix
         this.matrix = this.svg.createSVGMatrix();
-    }
-
-    rotate(rad) {
-        this.setState({
-            rotate: rad
-        });
-    }
-
-    /**
-     * Event capture to ensure that children do not get mouse events
-     * while a transformation tool is active
-     */
-    onMouseDownCapture(e) {
-        if (!this.state.active) {
-            return;
-        }
-
-        e.stopPropagation();
-    }
-
-    /**
-     * Event capture to ensure that children do not get mouse events
-     * while a transformation tool is active
-     */
-    onMouseMoveCapture(e) {
-        if (!this.state.active) {
-            return;
-        }
-
-        // Only translate if dragging
-        if (e.buttons !== 1) {
-            return;
-        }
-
-        const invScale = 1 / this.state.scale;
-
-        this.translate(
-            e.nativeEvent.movementX * invScale,
-            e.nativeEvent.movementY * invScale
-        );
-
-        e.stopPropagation();
-    }
-
-    onWheelCapture(e) {
-        if (!this.state.active) {
-            return;
-        }
-
-        if (e.deltaY === 0 && e.deltaX === 0) {
-            return;
-        }
-
-        // Get the sign of the scroll wheel - as we don't want actual pixel-level scroll.
-        // We fallback to deltaX for mice that have inverted wheels
-        const sign = Math.sign(e.deltaY !== 0 ? e.deltaY : e.deltaX);
-        const factor = Math.pow(1.1, sign);
-
-        // Center the zoom on wherever the mouse cursor is located in local space
-        const point = this.localSpace(
-            e.nativeEvent.offsetX,
-            e.nativeEvent.offsetY
-        );
-
-        this.zoom(factor, point.x, point.y);
-
-        e.stopPropagation();
-    }
-
-    translate(x, y) {
-        const translate = Object.assign({}, this.state.translate);
-        translate.x += x;
-        translate.y += y;
-
-        // this.matrix = this.matrix.translate(x, y);
-
-        this.setState({
-            translate: translate,
-            matrix: this.state.matrix.translate(x, y)
-        });
-
-        this.setState({ translate });
-    }
-
-    /**
-     * Zoom to a given (x, y) in local space
-     */
-    zoom(factor, x, y) {
-        // This doesn't work because we need to do these ops on a matrix,
-        // rather than in properties. UNLESS each operation waits for setState
-        // - but that sucks. There needs to be a setState AFTER all of these
-        // are said and done. Other option is to store it all in the matrix,
-        // and just decompose affine transformations out of that via maths.
-        this.translate(x, y);
-        this.scale(factor);
-        this.translate(-x, -y);
-    }
-
-    /**
-     * Convert a DOM-space point to transformation local space
-     *
-     * @param {integer} x
-     * @param {integer} y
-     */
-    localSpace(x, y) {
-        let point = this.svg.createSVGPoint();
-        point.x = x;
-        point.y = y;
-
-        return point.matrixTransform(
-            this.matrix.inverse()
-        );
     }
 
     /**
@@ -190,6 +77,172 @@ class Transform extends React.Component {
 
             e.stopPropagation();
         }
+    }
+
+    /**
+     * Event capture to ensure that children do not get mouse events
+     * while a transformation tool is active
+     */
+    onMouseDownCapture(e) {
+        if (!this.state.active) {
+            return;
+        }
+
+        e.stopPropagation();
+    }
+
+    /**
+     * Event capture to ensure that children do not get mouse events
+     * while a transformation tool is active
+     */
+    onMouseMoveCapture(e) {
+        if (!this.state.active) {
+            return;
+        }
+
+        // If dragging with Mouse 1, translate
+        if (e.buttons === 1) {
+            const invScale = 1 / this.state.scale;
+
+            this.translate(
+                e.nativeEvent.movementX * invScale,
+                e.nativeEvent.movementY * invScale
+            );
+
+            e.stopPropagation();
+            return;
+        }
+
+        // If dragging with middle mouse button, rotate
+        if (e.buttons === 4) {
+            const point = this.localSpace(
+                e.nativeEvent.offsetX,
+                e.nativeEvent.offsetY
+            );
+
+            this.rotate(
+                // e.nativeEvent.movementY,
+                0.1,
+                point.x,
+                point.y
+            );
+
+            e.stopPropagation();
+            return;
+        }
+    }
+
+    onWheelCapture(e) {
+        if (!this.state.active) {
+            return;
+        }
+
+        if (e.deltaY === 0 && e.deltaX === 0) {
+            return;
+        }
+
+        // Get the sign of the scroll wheel - as we don't want actual pixel-level scroll.
+        // We fallback to deltaX for mice that have inverted wheels
+        const sign = Math.sign(e.deltaY !== 0 ? e.deltaY : e.deltaX);
+        const factor = Math.pow(1.1, sign);
+
+        // Center the zoom on wherever the mouse cursor is located in local space
+        const point = this.localSpace(
+            e.nativeEvent.offsetX,
+            e.nativeEvent.offsetY
+        );
+
+        this.zoom(factor, point.x, point.y);
+
+        e.stopPropagation();
+    }
+
+    translate(x, y) {
+        this.matrix = this.matrix.translate(x, y);
+
+        this.setState({
+            translate: {
+                x: this.matrix.e,
+                y: this.matrix.f
+            }
+        });
+    }
+
+    /**
+     * Zoom to a given (x, y) in local space
+     */
+    zoom(factor, x, y) {
+        this.matrix = this.matrix.translate(x, y);
+        this.matrix = this.matrix.scale(factor);
+        this.matrix = this.matrix.translate(-x, -y);
+
+        // Since zooming on a point affects translation,
+        // we extract our new translation and update that
+        // alongside our new scale
+        this.setState({
+            translate: {
+                x: this.matrix.e,
+                y: this.matrix.f
+            },
+            scale: this.state.scale * factor
+        });
+    }
+
+    /**
+     * Rotate about a point (x, y) in local space
+     */
+    rotate(rad, x, y) {
+        this.matrix = this.matrix.translate(x, y);
+        this.matrix = this.matrix.rotate(rad * 180 / Math.PI);
+        this.matrix = this.matrix.translate(-x, -y);
+
+        // https://math.stackexchange.com/a/2888105 decomposition shenanigans
+        // if (when) needed.
+
+        this.setState({
+            translate: {
+                x: this.matrix.e,
+                y: this.matrix.f
+            },
+            rotate: rad
+        });
+    }
+
+    /**
+     * Resets this transform to the identity matrix
+     */
+    reset() {
+        this.matrix.a = 1;
+        this.matrix.b = 0;
+        this.matrix.c = 0;
+        this.matrix.d = 1;
+        this.matrix.e = 0;
+        this.matrix.f = 0;
+
+        this.setState({
+            translate: {
+                x: 0,
+                y: 0
+            },
+            scale: 1,
+            rotate: 0
+        });
+    }
+
+    /**
+     * Convert a DOM-space point to transformation local space
+     *
+     * @param {integer} x
+     * @param {integer} y
+     */
+    localSpace(x, y) {
+        let point = this.svg.createSVGPoint();
+        point.x = x;
+        point.y = y;
+
+        return point.matrixTransform(
+            this.matrix.inverse()
+        );
     }
 
     render() {
