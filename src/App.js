@@ -19,8 +19,16 @@ class App extends React.Component {
             min: 0,
             max: 1,
             start: 0,
-            end: 1
+            end: 1,
+
+            // List of key markers to send to TimeSlider.
+            // Populated with frame #'s that we draw over
+            keys: []
         };
+
+        // Cache of serialized Draw content per-frame.
+        // Eventually, this will be some localStorage object.
+        this.drawCache = {};
 
         this.video = React.createRef();
         this.time = React.createRef();
@@ -31,6 +39,15 @@ class App extends React.Component {
         this.onVideoReady = this.onVideoReady.bind(this);
         this.onPickRange = this.onPickRange.bind(this);
         this.onPickFrame = this.onPickFrame.bind(this);
+
+        this.onClickTogglePlayback = this.onClickTogglePlayback.bind(this);
+    }
+
+    componentDidUpdate(prevProps, prevState) {
+        // On Video frame change - change Draw content to match
+        if (prevState.frame !== this.state.frame) {
+            this.changeDrawover(prevState.frame, this.state.frame);
+        }
     }
 
     /**
@@ -86,6 +103,40 @@ class App extends React.Component {
 
         this.video.current.pause();
         this.video.current.frame = frame;
+    }
+
+    /**
+     * Swap Draw content to match the given frame
+     *
+     * This will serialize and store the current state of the Draw
+     * Draw component to the previous frame, and either start a new
+     * empty canvas for the specified frame or load the previously
+     * serialized content back into Draw.
+     *
+     * @param {Number} prevFrame to cache current Draw content
+     * @param {Number} frame to display new Draw content
+     */
+    changeDrawover(prevFrame, frame) {
+        // If this is a newly added frame, update our list of keyed frames
+        if (!this.draw.current.isEmpty()) {
+            if (!(prevFrame in this.drawCache)) {
+                const keys = this.state.keys;
+                keys.push(prevFrame);
+                this.setState({ keys });
+            }
+
+            // Store current Draw content to the cache
+            this.drawCache[prevFrame] = this.draw.current.serialize();
+        }
+
+        this.draw.current.reset();
+
+        // Try to load current Draw content from the cache
+        if (frame in this.drawCache) {
+            this.draw.current.deserialize(this.drawCache[frame]);
+        }
+
+        // TODO: Ghosting
     }
 
     render() {
