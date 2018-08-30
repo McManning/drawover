@@ -5,7 +5,8 @@ import React from 'react';
  * Video playback canvas. Not to be confused with native <video>
  * (TODO: ...should probably rename this)
  *
- * <Video onFrame={callable} onReady={callback} />
+ * <Video onFrame={callable} onReady={callback}
+ *      scale="1" rotate="0" translate={x: 0, y: 0} />
  *
  * `onReady` is fired once the media source has been fully loaded
  * `onFrame` callable gets the current frame number as an argument
@@ -31,7 +32,6 @@ class Video extends React.Component {
 
         // State data not managed by React (need a faster response time here)
         this.frames = {
-            current: 0,
             total: 0,
             start: 0,
             end: 0
@@ -41,6 +41,31 @@ class Video extends React.Component {
     componentDidMount() {
         // Don't do anything until the video is ready
         this.video.current.addEventListener('loadeddata', this.onVideoLoad, false);
+
+        // Set initial canvas transformation from props
+        this.transform(
+            this.props.translate,
+            this.props.scale,
+            this.props.rotate
+        );
+    }
+
+    /**
+     * Watch for component prop updates to update canvas transformation
+     */
+    componentDidUpdate(prevProps, prevState) {
+        // If any of the transformation props change, re-transform
+        if (prevProps.translate.x !== this.props.translate.x ||
+            prevProps.translate.y !== this.props.translate.y ||
+            prevProps.scale !== this.props.scale ||
+            prevProps.rotate !== this.props.rotate
+        ) {
+            this.transform(
+                this.props.translate,
+                this.props.scale,
+                this.props.rotate
+            );
+        }
     }
 
     onVideoLoad() {
@@ -51,16 +76,16 @@ class Video extends React.Component {
         this.frames.total = totalFrames;
         this.frames.end = totalFrames;
 
-        // TODO: Scale video to canvas
-        this.canvas.current.width = 1280/2;
-        this.canvas.current.height = 720/2;
-        this.backbuffer.current.width = 1280/2;
-        this.backbuffer.current.height = 720/2;
-
         // Frame draw tracking
         this.previousFrameTime = Date.now();
         this.previousFrame = -1;
+        this.frame = 0;
 
+        // Draw the first frame
+        this.clearCanvas();
+        this.drawCurrentFrame();
+
+        // Notify listeners
         if (this.props.onReady) {
             this.props.onReady();
         }
@@ -100,6 +125,47 @@ class Video extends React.Component {
             this.previousFrameTime = now - (delta % interval);
             this.drawCurrentFrame();
         }
+    }
+
+    /**
+     * Apply a transformation to the canvas render of the video
+     *
+     * @param {object} translate {x, y} coordinate pair
+     * @param {float} scale
+     * @param {float} rotate
+     */
+    transform(translate, scale, rotate) {
+        const ctx = this.canvas.current.getContext('2d');
+
+        // Reset transformation
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+        // Apply transformations to the canvas
+        ctx.translate(translate.x, translate.y);
+        ctx.scale(scale, scale);
+        ctx.rotate(rotate);
+
+        // Redraw
+        this.clearCanvas();
+        this.drawCurrentFrame();
+    }
+
+    /**
+     * Clear the contents from the canvas.
+     *
+     * Typically used after a transform to clear any
+     * lingering canvas content from the transform
+     */
+    clearCanvas() {
+        const ctx = this.canvas.current.getContext('2d');
+        const scale = 1 / this.props.scale;
+
+        ctx.clearRect(
+            -this.props.translate.x,
+            -this.props.translate.y,
+            this.canvas.current.width * scale,
+            this.canvas.current.height * scale
+        );
     }
 
     /**
@@ -214,13 +280,14 @@ class Video extends React.Component {
     }
 
     /**
-     * Set the current frame to render
+     * Set the current frame to render and redraw
      *
      * Frame will be capped to range [startFrame, endFrame]
      */
     set frame(val) {
         const frame = this.clampFrame(val);
         this.video.current.currentTime = (frame + 1) / this.props.fps;
+        this.drawCurrentFrame();
     }
 
     /**
