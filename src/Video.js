@@ -16,6 +16,7 @@ class Video extends React.Component {
         super(props);
 
         this.onVideoLoad = this.onVideoLoad.bind(this);
+        this.onVideoSeeked = this.onVideoSeeked.bind(this);
         this.onAnimFrame = this.onAnimFrame.bind(this);
 
         this.play = this.play.bind(this);
@@ -41,6 +42,7 @@ class Video extends React.Component {
     componentDidMount() {
         // Don't do anything until the video is ready
         this.video.current.addEventListener('loadeddata', this.onVideoLoad, false);
+        this.video.current.addEventListener('seeked', this.onVideoSeeked, false);
 
         // Set initial canvas transformation from props
         this.transform(
@@ -89,6 +91,13 @@ class Video extends React.Component {
         if (this.props.onReady) {
             this.props.onReady();
         }
+    }
+
+    /**
+     * On seek - update our canvas with the new frame
+     */
+    onVideoSeeked() {
+        this.drawCurrentFrame();
     }
 
     /**
@@ -287,7 +296,6 @@ class Video extends React.Component {
     set frame(val) {
         const frame = this.clampFrame(val);
         this.video.current.currentTime = (frame + 1) / this.props.fps;
-        this.drawCurrentFrame();
     }
 
     /**
