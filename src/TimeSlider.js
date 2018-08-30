@@ -238,11 +238,36 @@ class TimeSlider extends React.Component {
         }
     }
 
+    /**
+     * Add custom markers to the slider for keyed frames
+     */
+    renderKeys() {
+        const { start, end } = this.state;
+
+        return (
+            <div className="time-slider-keys">
+                {this.props.keys.map((key) => {
+                    if (key >= start && key <= end) {
+                        return (
+                            <div className="time-slider-key" style={{
+                                left: ((key - start) / (end - start) * 100) + '%'
+                            }}></div>
+                        );
+                    }
+
+                    return null;
+                })}
+            </div>
+        );
+    }
+
     render() {
         return (
             <div className="time-slider">
-                <br/><br/>
-                <div ref={this.ref}></div>
+                <div className="time-slider-noui">
+                    <div ref={this.ref}></div>
+                    {this.renderKeys(this.props.keys)}
+                </div>
 
                 <input type="number" name="currentInput" value={this.state.currentInput}
                     onChange={this.onInputChange} onBlur={this.onInputBlur} />
@@ -250,5 +275,9 @@ class TimeSlider extends React.Component {
         );
     }
 }
+
+TimeSlider.defaultProps = {
+    keys: []
+};
 
 export default TimeSlider;
