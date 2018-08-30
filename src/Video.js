@@ -188,8 +188,8 @@ class Video extends React.Component {
             this.video.current,
             0,
             0,
-            this.props.width,
-            this.props.height
+            this.video.current.videoWidth,
+            this.video.current.videoHeight
         );
 
         // If there's an event handler for frame changes, call it.
