@@ -192,13 +192,13 @@ class TimeSlider extends React.Component {
      *
      * @see https://refreshless.com/nouislider/events-callbacks/
      *
-     * @param {Number} value
+     * @param {string[]} value
      */
     onSliderChange(value) {
-        // Only update if it's actually been changed.
-        if (this.state.current !== value) {
-            const ival = parseInt(value, 10);
+        const ival = parseInt(value[0], 10);
 
+        // Only update if it's actually been changed.
+        if (this.state.current !== ival) {
             this.setState({
                 current: ival,
                 currentInput: ival
