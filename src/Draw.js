@@ -496,37 +496,103 @@ class Draw extends React.Component {
      * This attempts to eliminate some of the fat from `history`
      * to reduce serialized size.
      *
-     * @return {string}
+     * @return {ArrayBuffer}
      */
     serialize() {
-        let serialized = [];
+        /*
+            Byte count is:
 
-        // TODO: Some sort of compression.
-        // Tools can become integer IDs, color can be
-        // an integer, combined with the ints of line width
-        // and the array of positions, it's just arrays of
-        // ints we can crunch down.
-        this.state.history.forEach((event) => {
-            if (event.tool === 'clear') {
-                serialized = [];
+            tool: 1 byte
+            color: 3 bytes
+            lineWidth: 1 byte
+            point length: 2 bytes
+            points: 4 bytes per point
+
+            For laziness, everything will be padded to int16,
+            so tool/linewidth = 2 bytes, color = 6 bytes, and color/point length will
+            be in every event, regardless of type. Will overoptimize later.
+        */
+
+        let buffer = [];
+
+        // TODO: Better handle "erase" events s.t. if an erasure actually
+        // clears the entire canvas, don't store anything prior to erase
+        for (let i = 0; i < this.state.historyIndex; i++) {
+            const event = this.state.history[i];
+
+            if (event.tool === Draw.CLEAR_TOOL) {
+                buffer = [];
             } else {
-                serialized.push(event);
-            }
-        });
+                buffer.push(event.tool);
+                buffer.push(parseInt(event.color.substr(1, 2), 16)); // R
+                buffer.push(parseInt(event.color.substr(3, 2), 16)); // G
+                buffer.push(parseInt(event.color.substr(5, 2), 16)); // B
+                buffer.push(event.lineWidth);
+                buffer.push(event.points.length * 2); // int16 length of points
 
-        return JSON.stringify(serialized);
+                for (let p = 0; p < event.points.length; p++) {
+                    buffer.push(event.points[p].x);
+                    buffer.push(event.points[p].y);
+                }
+            }
+        }
+
+        // quick deserialization test
+        // let desc = this.deserialize(new Int16Array(buffer).buffer);
+        // console.log(this.state.history);
+        // console.log(desc);
+
+        // TODO: Some sort of compression?
+        return new Int16Array(buffer).buffer;
     }
 
     /**
      * Deserialize the input history state and redraw to match
+     *
+     * @param {ArrayBuffer} buffer
      */
-    deserialize(serialized) {
-        let deserialized = JSON.parse(serialized);
+    deserialize(buffer) {
+        const int16 = new Int16Array(buffer);
+        const deserialized = [];
 
+        let i = 0;
+
+        while (i < int16.length) {
+            // Read event header
+            const event = {
+                tool: int16[i],
+                color: '#' +
+                    int16[i + 1].toString(16).padStart(2, '0') +
+                    int16[i + 2].toString(16).padStart(2, '0') +
+                    int16[i + 3].toString(16).padStart(2, '0'),
+                lineWidth: int16[i + 4]
+            };
+
+            i += 5;
+
+            // Read point data
+            const plen = int16[i];
+            const points = [];
+
+            i++;
+            for (let p = 0; p < plen; p += 2) {
+                points.push({
+                    x: int16[i + p],
+                    y: int16[i + p + 1]
+                });
+            }
+
+            event.points = points;
+            i += plen;
+
+            deserialized.push(event);
+        }
+
+        // Rewrite history and redraw
         this.setState({
             history: deserialized,
             historyIndex: deserialized.length
-        }, () => this.redraw());
+        }, () => this.redraw(deserialized.length));
     }
 
     /**
