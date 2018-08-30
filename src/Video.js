@@ -106,13 +106,16 @@ class Video extends React.Component {
      * Copy the current video frame to our canvas.
      */
     drawCurrentFrame() {
-        // TODO: Backbuffer shenanigans to handle scale/rotate/etc
-        // and mixing with other renderables (pen tools and such)
-        // Assuming that's here and not in a parent component.
-        const context = this.canvas.current.getContext('2d');
+        const ctx = this.canvas.current.getContext('2d');
         // const backbufferContext = this.backbuffer.current.getContext('2d');
 
-        context.drawImage(this.video.current, 0, 0, 1280/2, 720/2);
+        ctx.drawImage(
+            this.video.current,
+            0,
+            0,
+            this.props.width,
+            this.props.height
+        );
 
         // If there's an event handler for frame changes, call it.
         if (this.frame !== this.previousFrame) {
@@ -242,15 +245,34 @@ class Video extends React.Component {
                     <button onClick={() => this.skip(-5)}>-5</button>
                 </div>
 
-                <canvas ref={this.canvas} width="640" height="360"></canvas>
+                <canvas ref={this.canvas}
+                    width={this.props.width} height={this.props.height}
+                ></canvas>
+
                 <canvas ref={this.backbuffer} style={{ display: 'none' }}></canvas>
 
-                <video ref={this.video} width="640" height="360" muted loop>
-                    <source src="/timecode-2998fps.mp4" />
+                <video ref={this.video}
+                    width={this.props.width} height={this.props.height}
+                    muted loop
+                >
+                    <source src={this.props.source} />
                 </video>
             </div>
         );
     }
+}
+
+Video.defaultProps = {
+    width: 720,
+    height: 480,
+    source: null,
+
+    translate: {
+        x: 0,
+        y: 0
+    },
+    scale: 1,
+    rotate: 0
 }
 
 export default Video;
