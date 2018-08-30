@@ -4,6 +4,8 @@ import React from 'react';
 import Video from './Video';
 import RangeSlider from './RangeSlider';
 import TimeSlider from './TimeSlider';
+import Draw from './Draw';
+import Transform from './Transform';
 
 class App extends React.Component {
     constructor(props) {
@@ -23,6 +25,7 @@ class App extends React.Component {
         this.video = React.createRef();
         this.time = React.createRef();
         this.range = React.createRef();
+        this.draw = React.createRef();
 
         this.onFrame = this.onFrame.bind(this);
         this.onVideoReady = this.onVideoReady.bind(this);
@@ -51,6 +54,10 @@ class App extends React.Component {
      * @param {integer} frame
      */
     onFrame(frame) {
+        if (!this.video.current) {
+            return;
+        }
+
         this.setState({
             frame: this.video.current.frame
         });
@@ -84,8 +91,19 @@ class App extends React.Component {
     render() {
         return (
             <div className="app">
-                <p>Ready: {this.state.ready}</p>
-                <p>Frame: {this.state.frame}</p>
+                <Transform>
+                    <Video ref={this.video}
+                        fps={this.state.fps}
+                        onReady={this.onVideoReady}
+                        onFrame={this.onFrame}
+                        width="720" height="480"
+                        source="/timecode-2998fps.mp4"
+                    />
+
+                    <Draw ref={this.draw}
+                        width="720" height="480"
+                    />
+                </Transform>
 
                 <TimeSlider ref={this.time}
                     fps={this.state.fps}
@@ -97,10 +115,8 @@ class App extends React.Component {
                     max={this.state.max}
                     onChange={this.onPickRange} />
 
-                <Video ref={this.video}
-                    fps={this.state.fps}
-                    onReady={this.onVideoReady}
-                    onFrame={this.onFrame} />
+                <p>Ready: {this.state.ready}</p>
+                <p>Frame: {this.state.frame}</p>
             </div>
         );
     }

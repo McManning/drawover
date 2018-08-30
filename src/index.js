@@ -10,11 +10,13 @@ import App from './App';
 import Draw from './Draw';
 import Transform from './Transform';
 
-ReactDOM.render(
-    <Transform>
-        <Draw />
-    </Transform>,
-    document.getElementById('root')
-);
+// ReactDOM.render(
+//     <Transform>
+//         <Draw />
+//     </Transform>,
+//     document.getElementById('root')
+// );
+
+ReactDOM.render(<App/>, document.getElementById('root'));
 
 registerServiceWorker();
