@@ -108,16 +108,13 @@ class Draw extends React.Component {
         }
     }
 
-    clearTempCanvas() {
-        const tl = this.transformedPoint(0, 0);
-        const scale = 1 / this.props.scale;
+    clearTemp() {
+        const ctx = this.tempContext;
 
-        this.tempContext.clearRect(
-            tl.x,
-            tl.y,
-            this.temp.current.width * scale,
-            this.temp.current.height * scale
-        );
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, this.temp.current.width, this.temp.current.height);
+        ctx.restore();
     }
 
     /**
@@ -150,7 +147,7 @@ class Draw extends React.Component {
         ctx.restore();
 
         // Reset everything
-        this.clearTempCanvas();
+        this.clearTemp();
         this.points = [];
     }
 
@@ -268,6 +265,9 @@ class Draw extends React.Component {
         this.mouseY = point.y;
     }
 
+    /**
+     * Clear both canvas but persist draw history
+     */
     clear() {
         const ctx = this.canvasContext;
 
@@ -275,6 +275,8 @@ class Draw extends React.Component {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, this.canvas.current.width, this.canvas.current.height);
         ctx.restore();
+
+        this.clearTemp();
     }
 
     /**
@@ -388,7 +390,7 @@ class Draw extends React.Component {
         } else {
             // Clear the temp and start a new curve from all the
             // stored points for a smoother curve
-            this.clearTempCanvas();
+            this.clearTemp();
 
             this.pen(
                 this.tempContext,
@@ -488,6 +490,39 @@ class Draw extends React.Component {
 
         this.setState({ historyIndex });
         this.redraw(historyIndex);
+    }
+
+    /**
+     * Clear the canvas and the history stack.
+     *
+     * This will maintain whatever the active tool is.
+     */
+    reset() {
+        this.clear();
+        this.setState({
+            history: [],
+            historyIndex: 0
+        });
+    }
+
+    /**
+     * Returns true if there is currently no rendered content
+     *
+     * @return {boolean}
+     */
+    isEmpty() {
+        if (this.state.historyIndex < 1) {
+            return true;
+        }
+
+        // Consider us "empty" if the last tool was a clear.
+        const lastTool = this.state.history[this.state.historyIndex - 1].tool;
+        return lastTool === Draw.CLEAR_TOOL;
+
+        // TODO: Detecting an empty canvas based on actual pixels.
+        // Can create (and cache) a `toDataURL` of a blank canvas and
+        // compare that to our data URL of this canvas. But might be slow AF
+        // and a last resort IFF there's pen + erase both detected in history.
     }
 
     /**
@@ -712,9 +747,65 @@ class Draw extends React.Component {
         );
     }
 
-    render() {
-        const { tool, color, lineWidth, history, historyIndex } = this.state;
+    /**
+     * Render a panel that contains our history stack
+     *
+     * For debugging use only, ATM
+     */
+    renderHistory() {
+        const { history, historyIndex } = this.state;
 
+         <ul className="draw-history">
+            {history.map((event, idx) =>
+                <li key={idx} className={idx >= historyIndex ? 'is-undone' : ''}>
+                    {idx}:
+
+                    {idx === historyIndex &&
+                        <span>*</span>
+                    }
+
+                    {event.tool} - {event.color} -
+                    {event.lineWidth} - {event.points.length}
+                </li>
+            )}
+        </ul>
+    }
+
+    /**
+     * Render the floating tools menu
+     */
+    renderTools() {
+        const { tool, color, lineWidth } = this.state;
+
+        return (
+            <div className="draw-tools" style={this.state.toolsOrigin}>
+                <input type="range" min="1" max="100"
+                    className="draw-line-width"
+                    value={lineWidth}
+                    onChange={this.onChangeLineWidth} />
+
+                <ul>
+                {this.penColors.map((c) =>
+                    <li key={c}>
+                        <button className={'draw-pen ' +
+                            (color === c && tool === Draw.PEN_TOOL ? 'is-active' : '')
+                        } onClick={() => this.setPen(c)} style={{backgroundColor: c}}></button>
+                    </li>
+                )}
+                </ul>
+
+                <button className={'draw-eraser ' + (tool === Draw.PEN_TOOL ? 'is-active' : '')}
+                    onClick={() => this.setEraser()}>Eraser</button>
+
+                <button className="draw-clear" onClick={this.onClear}>Clear</button>
+
+                <button className="draw-undo" onClick={this.undo}>Undo</button>
+                <button className="draw-redo" onClick={this.redo}>Redo</button>
+            </div>
+        );
+    }
+
+    render() {
         // Temp canvas is rendered directly on top of the main canvas so that
         // it gets input events and drawn lines are copied down to the underlying
         // persistent canvas.
@@ -735,53 +826,7 @@ class Draw extends React.Component {
                 <canvas ref={this.canvas} className="draw-canvas"
                     width={this.props.width} height={this.props.height}></canvas>
 
-                {this.state.toolsVisible &&
-                    <div className="draw-tools" style={this.state.toolsOrigin}>
-                        <input type="range" min="1" max="100"
-                            className="draw-line-width"
-                            value={lineWidth}
-                            onChange={this.onChangeLineWidth} />
-
-                        <ul>
-                        {this.penColors.map((c) =>
-                            <li key={c}>
-                                <button className={'draw-pen ' +
-                                    (color === c && tool === Draw.PEN_TOOL ? 'is-active' : '')
-                                } onClick={() => this.setPen(c)} style={{backgroundColor: c}}></button>
-                            </li>
-                        )}
-                        </ul>
-
-                        <button className={'draw-eraser ' + (tool === Draw.PEN_TOOL ? 'is-active' : '')}
-                            onClick={() => this.setEraser()}>Eraser</button>
-
-                        <button className="draw-clear" onClick={this.onClear}>Clear</button>
-
-                        <button className="draw-undo" onClick={this.undo}>Undo</button>
-                        <button className="draw-redo" onClick={this.redo}>Redo</button>
-                    </div>
-                }
-
-                <ul className="draw-history">
-                    {history.map((event, idx) =>
-                        <li key={idx} className={idx >= historyIndex ? 'is-undone' : ''}>
-                            {idx}:
-
-                            {idx === historyIndex &&
-                                <span>*</span>
-                            }
-
-                            {event.tool} - {event.color} -
-                            {event.lineWidth} - {event.points.length}
-                        </li>
-                    )}
-                </ul>
-
-                <ul>
-                    <li>Translate: {this.props.translate.x}, {this.props.translate.y}</li>
-                    <li>Scale: {this.props.scale}</li>
-                    <li>Rotate: {this.props.rotate}</li>
-                </ul>
+                {this.state.toolsVisible && this.renderTools()}
             </div>
         );
     }
