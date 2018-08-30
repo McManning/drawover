@@ -160,21 +160,15 @@ class Video extends React.Component {
     }
 
     /**
-     * Clear the contents from the canvas.
-     *
-     * Typically used after a transform to clear any
-     * lingering canvas content from the transform
+     * Clear video content from the canvas
      */
     clearCanvas() {
         const ctx = this.canvas.current.getContext('2d');
-        const scale = 1 / this.props.scale;
 
-        ctx.clearRect(
-            -this.props.translate.x,
-            -this.props.translate.y,
-            this.canvas.current.width * scale,
-            this.canvas.current.height * scale
-        );
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, this.canvas.current.width, this.canvas.current.height);
+        ctx.restore();
     }
 
     /**
