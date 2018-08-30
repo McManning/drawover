@@ -16,14 +16,19 @@ import React from 'react';
  * strokes in a more lightweight data format than a canvas image.
  */
 class Draw extends React.Component {
+    static PEN_TOOL = 1;
+    static ERASE_TOOL = 2;
+    static CLEAR_TOOL = 3;
+
     constructor(props) {
         super(props);
 
         this.penColors = [
-            '#000000',
             '#FF0000',
             '#00FF00',
-            '#0000FF'
+            '#0000FF',
+            '#000000',
+            '#FFFFFF'
         ];
 
         this.state = {
@@ -66,7 +71,7 @@ class Draw extends React.Component {
     }
 
     componentDidMount() {
-        this.setPen('#000000');
+        this.setPen(this.penColors[0]);
 
         // Set initial canvas transformation from props
         this.transform(
@@ -244,7 +249,7 @@ class Draw extends React.Component {
         for (let i = 0; i < historyIndex; i++) {
             const event = this.state.history[i];
 
-            if (event.tool === 'erase') {
+            if (event.tool === Draw.ERASE_TOOL) {
                 this.pen(
                     ctx,
                     '',
@@ -252,7 +257,7 @@ class Draw extends React.Component {
                     event.points,
                     'destination-out'
                 );
-            } else if (event.tool === 'pen') {
+            } else if (event.tool === Draw.PEN_TOOL) {
                 this.pen(
                     ctx,
                     event.color,
@@ -260,7 +265,7 @@ class Draw extends React.Component {
                     event.points,
                     'source-over'
                 );
-            } else if (event.tool === 'clear') {
+            } else if (event.tool === Draw.CLEAR_TOOL) {
                 this.clear();
             }
         }
@@ -328,7 +333,7 @@ class Draw extends React.Component {
             y: this.mouseY
         });
 
-        if (this.state.tool === 'erase') {
+        if (this.state.tool === Draw.ERASE_TOOL) {
             // Erase tool operates directly on the composite canvas
             // so that it can immediately overwrite existing lines.
             // The edges are slightly more jagged and overdraw themselves
@@ -356,19 +361,30 @@ class Draw extends React.Component {
     }
 
     /**
+     * Activate a pen tool in the chosen color
+     *
      * @param {string} color Hex color code to draw in
      */
     setPen(color) {
         this.setState({
-            tool: 'pen',
-            color: color
+            tool: Draw.PEN_TOOL,
+            color: color,
+
+            // Clear tools menu, if still active
+            toolsVisible: false
         });
     }
 
+    /**
+     * Activate the eraser tool
+     */
     setEraser() {
         this.setState({
-            tool: 'erase',
-            color: ''
+            tool: Draw.ERASE_TOOL,
+            color: '',
+
+            // Clear tools menu, if still active
+            toolsVisible: false
         });
     }
 
