@@ -4,7 +4,8 @@ import React from 'react';
 /**
  * Frame drawover
  *
- * <Draw width="720" height="480"/>
+ * <Draw width="720" height="480"
+ *       scale="1" rotate="0" translate={x: 0, y: 0} />
  *
  * Includes basic draw tools:
  *  - brush size

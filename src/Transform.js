@@ -88,6 +88,23 @@ class Transform extends React.Component {
             return;
         }
 
+        // if (e.buttons === 2) {
+        //     const point = this.localSpace(
+        //         e.nativeEvent.offsetX,
+        //         e.nativeEvent.offsetY
+        //     );
+
+        //     this.rotate(
+        //         // e.nativeEvent.movementY,
+        //         0.78,
+        //         point.x,
+        //         point.y
+        //     );
+
+        //     e.stopPropagation();
+        //     return;
+        // }
+
         e.stopPropagation();
     }
 
@@ -103,30 +120,14 @@ class Transform extends React.Component {
         // If dragging with Mouse 1, translate
         if (e.buttons === 1) {
             const invScale = 1 / this.state.scale;
+            const x = e.nativeEvent.movementX * invScale;
+            const y = e.nativeEvent.movementY * invScale;
 
-            this.translate(
-                e.nativeEvent.movementX * invScale,
-                e.nativeEvent.movementY * invScale
-            );
+            // Apply rotations
+            // let rx = x*Math.cos(-this.state.rotate) - y*Math.sin(-this.state.rotate);
+            // let ry = x*Math.sin(-this.state.rotate) + y*Math.cos(-this.state.rotate);
 
-            e.stopPropagation();
-            return;
-        }
-
-        // If dragging with middle mouse button, rotate
-        if (e.buttons === 4) {
-            const point = this.localSpace(
-                e.nativeEvent.offsetX,
-                e.nativeEvent.offsetY
-            );
-
-            this.rotate(
-                // e.nativeEvent.movementY,
-                0.1,
-                point.x,
-                point.y
-            );
-
+            this.translate(x, y);
             e.stopPropagation();
             return;
         }
@@ -192,20 +193,7 @@ class Transform extends React.Component {
      * Rotate about a point (x, y) in local space
      */
     rotate(rad, x, y) {
-        this.matrix = this.matrix.translate(x, y);
-        this.matrix = this.matrix.rotate(rad * 180 / Math.PI);
-        this.matrix = this.matrix.translate(-x, -y);
-
-        // https://math.stackexchange.com/a/2888105 decomposition shenanigans
-        // if (when) needed.
-
-        this.setState({
-            translate: {
-                x: this.matrix.e,
-                y: this.matrix.f
-            },
-            rotate: rad
-        });
+        throw new Error('Not supported');
     }
 
     /**
