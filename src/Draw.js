@@ -66,6 +66,7 @@ class Draw extends React.Component {
         this.onKeyDown = this.onKeyDown.bind(this);
         this.onChangeLineWidth = this.onChangeLineWidth.bind(this);
         this.onClear = this.onClear.bind(this);
+        this.onContextMenu = this.onContextMenu.bind(this);
         this.undo = this.undo.bind(this);
         this.redo = this.redo.bind(this);
     }
@@ -79,6 +80,9 @@ class Draw extends React.Component {
             this.props.scale,
             this.props.rotate
         );
+
+        // Add non-React event listener for context menu (right click)
+        this.temp.current.addEventListener('contextmenu', this.onContextMenu);
     }
 
     /**
@@ -156,6 +160,15 @@ class Draw extends React.Component {
      * @param {SyntheticEvent} e
      */
     onMouseDown(e) {
+        // If we click outside the visible tools window,
+        // just close it and don't start drawing.
+        if (this.state.toolsVisible) {
+            this.setState({
+                toolsVisible: false
+            });
+            return;
+        }
+
         if (e.buttons === 1) {
             this.dragging = true;
         }
@@ -188,6 +201,10 @@ class Draw extends React.Component {
      * @param {SyntheticEvent} e
      */
     onMouseMove(e) {
+        if (this.state.toolsVisible) {
+            return;
+        }
+
         // If they had the primary mouse button down while dragging INTO
         // the canvas, but didn't press it down while already on the canvas,
         // flag as a drag event
@@ -206,11 +223,34 @@ class Draw extends React.Component {
      * Capture and respond to undo/redo events (ctrl+z/y)
      */
     onKeyDown(e) {
-        if (e.keyCode === 90 && e.ctrlKey) {
+        console.log(e.keyCode, e.ctrlKey);
+        if (e.keyCode === 90 && e.ctrlKey) { // ctrl+z or cmd+z
             this.undo();
-        } else if (e.keyCode === 89 && e.ctrlKey) {
+        } else if (e.keyCode === 89 && e.ctrlKey) { // ctrl+y or cmd+shift+z
             this.redo();
+        } else if (e.keyCode === 27) { // ESC - hide tools if visible
+            this.setState({
+                toolsVisible: false
+            });
         }
+    }
+
+    /**
+     * Override the default context menu with a tool menu
+     */
+    onContextMenu(e) {
+        e.preventDefault();
+
+        // TODO: Smarter placement, in case it's offscreen or something.
+        this.setState({
+            toolsVisible: true,
+            toolsOrigin: {
+                top: e.pageY,
+                left: e.pageX
+            }
+        });
+
+        return false;
     }
 
     /**
@@ -495,6 +535,11 @@ class Draw extends React.Component {
     onClear() {
         this.clear();
         this.pushHistory('clear', '', '', []);
+
+        // Hide the tools menu, if visible
+        this.setState({
+            toolsVisible: false
+        });
     }
 
     /**
@@ -624,30 +669,32 @@ class Draw extends React.Component {
                 <canvas ref={this.canvas} className="draw-canvas"
                     width={this.props.width} height={this.props.height}></canvas>
 
-                <div className="draw-tools">
-                    <input type="range" min="1" max="100"
-                        className="draw-line-width"
-                        value={lineWidth}
-                        onChange={this.onChangeLineWidth} />
+                {this.state.toolsVisible &&
+                    <div className="draw-tools" style={this.state.toolsOrigin}>
+                        <input type="range" min="1" max="100"
+                            className="draw-line-width"
+                            value={lineWidth}
+                            onChange={this.onChangeLineWidth} />
 
-                    <ul>
-                    {this.penColors.map((c) =>
-                        <li key={c}>
-                            <button className={'draw-pen ' +
-                                (color === c && tool === 'pen' ? 'is-active' : '')
-                            } onClick={() => this.setPen(c)} style={{backgroundColor: c}}></button>
-                        </li>
-                    )}
-                    </ul>
+                        <ul>
+                        {this.penColors.map((c) =>
+                            <li key={c}>
+                                <button className={'draw-pen ' +
+                                    (color === c && tool === Draw.PEN_TOOL ? 'is-active' : '')
+                                } onClick={() => this.setPen(c)} style={{backgroundColor: c}}></button>
+                            </li>
+                        )}
+                        </ul>
 
-                    <button className={'draw-eraser ' + (tool === 'erase' ? 'is-active' : '')}
-                        onClick={() => this.setEraser()}>Eraser</button>
+                        <button className={'draw-eraser ' + (tool === Draw.PEN_TOOL ? 'is-active' : '')}
+                            onClick={() => this.setEraser()}>Eraser</button>
 
-                    <button className="draw-clear" onClick={this.onClear}>Clear</button>
+                        <button className="draw-clear" onClick={this.onClear}>Clear</button>
 
-                    <button className="draw-undo" onClick={this.undo}>Undo</button>
-                    <button className="draw-redo" onClick={this.redo}>Redo</button>
-                </div>
+                        <button className="draw-undo" onClick={this.undo}>Undo</button>
+                        <button className="draw-redo" onClick={this.redo}>Redo</button>
+                    </div>
+                }
 
                 <ul className="draw-history">
                     {history.map((event, idx) =>
