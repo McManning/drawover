@@ -10,11 +10,6 @@ body {
     margin: 2rem;
 }
 
-.time-slider .noUi-target {
-    flex: 1;
-    margin-right: 2rem;
-}
-
 .range-slider {
     display: flex;
     flex-direction: row;
@@ -100,45 +95,52 @@ body {
 
     background: grey;
 
-    width: 4em;
     padding: 0.5em;
 }
 
-.draw-pen {
-    display: block;
-    height: 30px;
-    width: 30px;
-
-    border: 4px solid white;
-    border-radius: 15px;
-
-    margin-bottom: 0.5em;
-}
-
-.draw-pen.is-active {
-
+.draw-tools {
+    width: 12em;
+    margin-top: -20px;
+    margin-left: -25px;
 }
 
 .draw-tools ul {
     list-style: none;
     margin: 0;
     padding: 0;
+
+    margin-top: 0.25em;
+    margin-bottom: 0.5em;
+}
+
+.draw-tools li {
+    display: inline;
+    margin-right: 0.5em;
+    white-space: nowrap;
+}
+
+.draw-line-width {
+    width: 100%;
+    margin: 0;
+}
+
+.draw-pen {
+    height: 30px;
+    width: 30px;
+
+    border: 4px solid white;
+    border-radius: 15px;
+}
+
+.draw-pen.is-active {
+
 }
 
 .draw-eraser,
 .draw-clear,
 .draw-undo,
 .draw-redo {
-    display: block;
-    width: 100%;
 
-    margin-bottom: 0.5em;
-}
-
-.draw-line-width {
-    -webkit-appearance: slider-vertical;
-    float: right;
-    width: 1.5em;
 }
 
 .draw-history {
@@ -194,4 +196,35 @@ li.is-undone {
     left: 0;
 
     z-index: 3; /* just so I can throw it above the video for now */
+}
+
+
+.time-slider-noui {
+    position: relative;
+    flex: 1 1;
+}
+
+.time-slider .noUi-target {
+    border: none; /* no border  affects pixel layout */
+}
+
+/* Overlay on top of noUiSlider */
+.time-slider-keys {
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    height: 100%;
+}
+
+.time-slider-key {
+    position: absolute;
+    width: 2px;
+    height: 15px;
+    /*margin-left: -1px;*/
+    background: red;
+
+    /* width scales with the steps, with a minimum of 2px */
+    min-width: 2px;
 }

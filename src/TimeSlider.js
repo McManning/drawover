@@ -250,7 +250,8 @@ class TimeSlider extends React.Component {
                     if (key >= start && key <= end) {
                         return (
                             <div className="time-slider-key" style={{
-                                left: ((key - start) / (end - start) * 100) + '%'
+                                left: ((key - start) / (end - start) * 100) + '%',
+                                width: 100 / (end - start) + '%'
                             }}></div>
                         );
                     }
