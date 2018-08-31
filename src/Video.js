@@ -6,7 +6,7 @@ import React from 'react';
  * (TODO: ...should probably rename this)
  *
  * <Video onFrame={callable} onReady={callback}
- *      scale="1" rotate="0" translate={x: 0, y: 0} />
+ *      fps="29.98" scale="1" rotate="0" translate={x: 0, y: 0} />
  *
  * `onReady` is fired once the media source has been fully loaded
  * `onFrame` callable gets the current frame number as an argument
@@ -113,7 +113,7 @@ class Video extends React.Component {
      *
      * @return {boolean}
      */
-    get playing() {
+    isPlaying() {
         return !this.video.current.paused && !this.video.current.ended;
     }
 
@@ -204,7 +204,7 @@ class Video extends React.Component {
     }
 
     /**
-     * Pause and skip ahead/behind the specified number of frames
+     * Skip ahead/behind the specified number of frames
      *
      * @param {integer} count number of frames to skip forward/back
      */
@@ -304,16 +304,6 @@ class Video extends React.Component {
     render() {
         return (
             <div className="video">
-                <div className="video-playback-controls">
-                    <button onClick={this.play}>play</button>
-                    <button onClick={this.pause}>pause</button>
-
-                    <button onClick={() => this.skip(1)}>+1</button>
-                    <button onClick={() => this.skip(-1)}>-1</button>
-                    <button onClick={() => this.skip(5)}>+5</button>
-                    <button onClick={() => this.skip(-5)}>-5</button>
-                </div>
-
                 <canvas ref={this.canvas}
                     width={this.props.width} height={this.props.height}
                 ></canvas>
@@ -332,6 +322,7 @@ class Video extends React.Component {
 }
 
 Video.defaultProps = {
+    fps: 29.98,
     width: 720,
     height: 480,
     source: null,
@@ -342,6 +333,6 @@ Video.defaultProps = {
     },
     scale: 1,
     rotate: 0
-}
+};
 
 export default Video;
