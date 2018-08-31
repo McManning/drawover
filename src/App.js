@@ -139,6 +139,23 @@ class App extends React.Component {
         // TODO: Ghosting
     }
 
+    onClickTogglePlayback() {
+        if (this.video.current.isPlaying()) {
+            this.video.current.pause();
+        } else {
+            this.video.current.play();
+        }
+    }
+
+    /**
+     * Skip ahead/behind the specified number of frames
+     *
+     * @param {integer} count number of frames to skip forward/back
+     */
+    skip(count) {
+        this.video.current.skip(count);
+    }
+
     render() {
         return (
             <div className="app">
@@ -158,6 +175,7 @@ class App extends React.Component {
 
                 <TimeSlider ref={this.time}
                     fps={this.state.fps}
+                    keys={this.state.keys}
                     onChange={this.onPickFrame} />
 
                 <RangeSlider ref={this.range}
@@ -166,8 +184,15 @@ class App extends React.Component {
                     max={this.state.max}
                     onChange={this.onPickRange} />
 
-                <p>Ready: {this.state.ready}</p>
-                <p>Frame: {this.state.frame}</p>
+                <div className="app-playback">
+                    <button onClick={this.onClickTogglePlayback}>> / ||</button>
+
+                    <button onClick={() => this.skip(1)}>+1</button>
+                    <button onClick={() => this.skip(-1)}>-1</button>
+                    <button onClick={() => this.skip(5)}>+5</button>
+                    <button onClick={() => this.skip(-5)}>-5</button>
+
+                </div>
             </div>
         );
     }
