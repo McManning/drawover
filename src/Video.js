@@ -97,6 +97,32 @@ class Video extends React.Component {
     }
 
     /**
+     * Test if the given file resource can be loadable
+     *
+     * @param {File} file data to test
+     *
+     * @return {boolean}
+     */
+    canLoad(file) {
+        return this.video.current.canPlayType(file.type);
+    }
+
+    /**
+     * Load a new source file
+     *
+     * @param {File|string} file data to load
+     */
+    load(file) {
+        if (file instanceof File) {
+            this.video.current.src = URL.createObjectURL(file);
+        } else if (typeof file === 'string') {
+            this.video.current.src = file;
+        } else {
+            throw new Error('Unknown file typeof', file);
+        }
+    }
+
+    /**
      * Continue video playback
      */
     play() {
