@@ -25,8 +25,6 @@ class RangeSlider extends React.Component {
         this.onChangeStartFrame = this.onChangeStartFrame.bind(this);
         this.onChangeEndFrame = this.onChangeEndFrame.bind(this);
         this.onChange = this.onChange.bind(this);
-
-        this.scale = 1;
     }
 
     componentDidMount() {
@@ -48,17 +46,19 @@ class RangeSlider extends React.Component {
 
             // Match full frame count
             range: {
-                min: this.props.min / this.scale,
-                max: this.props.max / this.scale
+                min: this.props.min * this.props.scale,
+                max: this.props.max * this.props.scale
             },
 
             start: [
-                this.state.start / this.scale,
-                this.state.end / this.scale
+                this.state.start * this.props.scale,
+                this.state.end * this.props.scale
             ],
 
             // 20 frame margin between start and end
-            margin: 10
+            margin: 10,
+
+            step: this.props.scale
         });
 
         this.slider = this.ref.current.noUiSlider;
@@ -81,12 +81,12 @@ class RangeSlider extends React.Component {
             // Update noUiSlider to the new range limits
             this.slider.updateOptions({
                 range: {
-                    min: this.props.min / this.scale,
-                    max: this.props.max / this.scale
+                    min: this.props.min * this.props.scale,
+                    max: this.props.max * this.props.scale
                 },
                 start: [
-                    this.props.min / this.scale,
-                    this.props.max / this.scale
+                    this.props.min * this.props.scale,
+                    this.props.max * this.props.scale
                 ],
 
                 // The larger our range, the higher our step count (1 vs 10)
@@ -113,14 +113,14 @@ class RangeSlider extends React.Component {
     }
 
     onUpdateSlider(values) {
-        this.setState({
-            start: values[0] * this.scale,
-            end: values[1] * this.scale
-        });
+        const start = Math.round(values[0] / this.props.scale);
+        const end = Math.round(values[1] / this.props.scale);
+
+        this.setState({ start, end });
 
         // If we have a listener bound, fire a message to it
         if (this.props.onChange) {
-            this.props.onChange(values[0] * this.scale, values[1] * this.scale);
+            this.props.onChange(start, end);
         }
     }
 
@@ -131,11 +131,11 @@ class RangeSlider extends React.Component {
     }
 
     onChangeStartFrame(e) {
-        this.slider.set([e.target.value / this.scale, null]);
+        this.slider.set([e.target.value * this.props.scale, null]);
     }
 
     onChangeEndFrame(e) {
-        this.slider.set([null, e.target.value / this.scale]);
+        this.slider.set([null, e.target.value * this.props.scale]);
     }
 
     render() {
@@ -158,7 +158,8 @@ class RangeSlider extends React.Component {
 
 RangeSlider.defaultProps = {
     min: 0,
-    max: 100
+    max: 100,
+    scale: 1
 };
 
 export default RangeSlider;
