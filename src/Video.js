@@ -19,10 +19,6 @@ class Video extends React.Component {
         this.onVideoSeeked = this.onVideoSeeked.bind(this);
         this.onAnimFrame = this.onAnimFrame.bind(this);
 
-        this.play = this.play.bind(this);
-        this.pause = this.pause.bind(this);
-        this.skip = this.skip.bind(this);
-
         this.video = React.createRef();
         this.canvas = React.createRef();
         this.backbuffer = React.createRef();
@@ -106,6 +102,14 @@ class Video extends React.Component {
     play() {
         this.video.current.play();
         this.requestId = window.requestAnimationFrame(this.onAnimFrame);
+    }
+
+    /**
+     * Pause video playback
+     */
+    pause() {
+        this.video.current.pause();
+        window.cancelAnimationFrame(this.requestId);
     }
 
     /**
@@ -193,14 +197,6 @@ class Video extends React.Component {
                 this.props.onFrame(this.frame);
             }
         }
-    }
-
-    /**
-     * Pause video playback
-     */
-    pause() {
-        this.video.current.pause();
-        // window.cancelAnimationFrame(this.requestId);
     }
 
     /**
@@ -292,6 +288,14 @@ class Video extends React.Component {
         this.video.current.currentTime = (frame + 1) / this.props.fps;
     }
 
+    get speed() {
+        return this.video.current.playbackRate;
+    }
+
+    set speed(val) {
+        this.video.current.playbackRate = val;
+    }
+
     /**
      * Clamp the input frame to range [startFrame, endFrame]
      *
@@ -313,9 +317,7 @@ class Video extends React.Component {
                 <video ref={this.video}
                     width={this.props.width} height={this.props.height}
                     muted loop
-                >
-                    <source src={this.props.source} />
-                </video>
+                ></video>
             </div>
         );
     }
@@ -325,7 +327,6 @@ Video.defaultProps = {
     fps: 29.98,
     width: 720,
     height: 480,
-    source: null,
 
     translate: {
         x: 0,
