@@ -7,6 +7,7 @@ import TimeSlider from './TimeSlider';
 import Draw from './Draw';
 import Transform from './Transform';
 import Dropzone from './Dropzone';
+import Playback from './Playback';
 
 class App extends React.Component {
     constructor(props) {
@@ -15,8 +16,12 @@ class App extends React.Component {
         this.state = {
             fps: 29.98,
 
-            frame: 0,
             ready: false,
+            playing: false,
+
+            // Video playback speed
+            speed: 1,
+
             min: 0,
             max: 1,
             start: 0,
@@ -36,13 +41,24 @@ class App extends React.Component {
         this.range = React.createRef();
         this.draw = React.createRef();
 
-        this.onFrame = this.onFrame.bind(this);
+        // Events for <Video>
         this.onVideoReady = this.onVideoReady.bind(this);
+        this.onFrame = this.onFrame.bind(this);
+
+        // Events for <RangeSlider>
         this.onPickRange = this.onPickRange.bind(this);
+
+        // Events for <TimeSlider>
         this.onPickFrame = this.onPickFrame.bind(this);
+
+        // Events for <Dropzone>
         this.onDropFile = this.onDropFile.bind(this);
 
-        this.onClickTogglePlayback = this.onClickTogglePlayback.bind(this);
+        // Events for <Playback>
+        this.onPlaybackSpeed = this.onPlaybackSpeed.bind(this);
+        this.onPlaybackPlay = this.onPlaybackPlay.bind(this);
+        this.onPlaybackPause = this.onPlaybackPause.bind(this);
+        this.onPlaybackSkip = this.onPlaybackSkip.bind(this);
     }
 
     componentDidMount() {
@@ -112,6 +128,67 @@ class App extends React.Component {
     }
 
     /**
+     * Update playback speed of the video
+     */
+    onPlaybackSpeed(value) {
+        this.setState({
+            speed: value
+        });
+
+        this.video.current.speed = value;
+    }
+
+    /**
+     * Event handler to start video playback
+     */
+    onPlaybackPlay() {
+        this.video.current.play();
+
+        // TODO: Probably only set once the
+        // video source confirms it's playing.
+        this.setState({ playing: true });
+    }
+
+    /**
+     * Event handler to pause video playback
+     */
+    onPlaybackPause() {
+        this.video.current.pause();
+
+        // TODO: Probably only set once the
+        // video source confirms it's playing.
+        this.setState({ playing: false });
+    }
+
+    /**
+     * Skip the video forward/back the specified number of frames
+     *
+     * Frame skip is clamped to the range defined by RangeSlider
+     *
+     * @param {Number} frames to skip forward/back
+     */
+    onPlaybackSkip(frames) {
+        this.video.current.skip(frames);
+    }
+
+    /**
+     * Local file from disk was dropped into our Dropzone
+     *
+     * If it's a video file, load it to replace the existing video.
+     * If it's some other persisted file, load that instead.
+     */
+    onDropFile(file) {
+        console.log(file);
+
+        if (this.video.current.canLoad(file)) {
+            this.changeVideoSource(file);
+        } else {
+            alert('Cannot load type: ' + file.type);
+        }
+
+        // TODO: Check for other types of files and ways to handle them
+    }
+    /**
      * Swap Draw content to match the given frame
      *
      * This will serialize and store the current state of the Draw
@@ -145,32 +222,6 @@ class App extends React.Component {
         // TODO: Ghosting
     }
 
-    onClickTogglePlayback() {
-        if (this.video.current.isPlaying()) {
-            this.video.current.pause();
-        } else {
-            this.video.current.play();
-        }
-    }
-
-    /**
-     * Local file from disk was dropped into our Dropzone
-     *
-     * If it's a video file, load it to replace the existing video.
-     * If it's some other persisted file, load that instead.
-     */
-    onDropFile(file) {
-        console.log(file);
-
-        if (this.video.current.canLoad(file)) {
-            this.changeVideoSource(file);
-        } else {
-            alert('Cannot load type: ' + file.type);
-        }
-
-        // TODO: Check for other types of files and ways to handle them
-    }
-
     /**
      * Load a new file as our video source.
      *
@@ -181,6 +232,8 @@ class App extends React.Component {
         this.setState({
             frame: 0,
             ready: false,
+            playing: false,
+            speed: 1,
             min: 0,
             max: 1,
             start: 0,
@@ -191,15 +244,6 @@ class App extends React.Component {
         // Will trigger a new onVideoReady call on success
         // and update the state range
         this.video.current.load(file);
-    }
-
-    /**
-     * Skip ahead/behind the specified number of frames
-     *
-     * @param {integer} count number of frames to skip forward/back
-     */
-    skip(count) {
-        this.video.current.skip(count);
     }
 
     render() {
@@ -232,15 +276,14 @@ class App extends React.Component {
                     max={this.state.max}
                     onChange={this.onPickRange} />
 
-                <div className="app-playback">
-                    <button onClick={this.onClickTogglePlayback}>> / ||</button>
-
-                    <button onClick={() => this.skip(1)}>+1</button>
-                    <button onClick={() => this.skip(-1)}>-1</button>
-                    <button onClick={() => this.skip(5)}>+5</button>
-                    <button onClick={() => this.skip(-5)}>-5</button>
-
-                </div>
+                <Playback
+                    playing={this.state.playing}
+                    speed={this.state.speed}
+                    onPause={this.onPlaybackPause}
+                    onSkip={this.onPlaybackSkip}
+                    onPlay={this.onPlaybackPlay}
+                    onSpeed={this.onPlaybackSpeed}
+                />
             </div>
         );
     }
