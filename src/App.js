@@ -6,6 +6,7 @@ import RangeSlider from './RangeSlider';
 import TimeSlider from './TimeSlider';
 import Draw from './Draw';
 import Transform from './Transform';
+import Dropzone from './Dropzone';
 
 class App extends React.Component {
     constructor(props) {
@@ -39,8 +40,13 @@ class App extends React.Component {
         this.onVideoReady = this.onVideoReady.bind(this);
         this.onPickRange = this.onPickRange.bind(this);
         this.onPickFrame = this.onPickFrame.bind(this);
+        this.onDropFile = this.onDropFile.bind(this);
 
         this.onClickTogglePlayback = this.onClickTogglePlayback.bind(this);
+    }
+
+    componentDidMount() {
+        this.changeVideoSource('/bigbuckbunny.webm');
     }
 
     componentDidUpdate(prevProps, prevState) {
@@ -97,9 +103,9 @@ class App extends React.Component {
      * This will pause video playback and jump it to the desired frame
      */
     onPickFrame(frame) {
-        this.setState({
-            frame: frame
-        });
+        // this.setState({
+        //     frame: frame
+        // });
 
         this.video.current.pause();
         this.video.current.frame = frame;
@@ -148,6 +154,46 @@ class App extends React.Component {
     }
 
     /**
+     * Local file from disk was dropped into our Dropzone
+     *
+     * If it's a video file, load it to replace the existing video.
+     * If it's some other persisted file, load that instead.
+     */
+    onDropFile(file) {
+        console.log(file);
+
+        if (this.video.current.canLoad(file)) {
+            this.changeVideoSource(file);
+        } else {
+            alert('Cannot load type: ' + file.type);
+        }
+
+        // TODO: Check for other types of files and ways to handle them
+    }
+
+    /**
+     * Load a new file as our video source.
+     *
+     * This will clear everything (timeline, keys, etc) and start
+     * fresh with the new video
+     */
+    changeVideoSource(file) {
+        this.setState({
+            frame: 0,
+            ready: false,
+            min: 0,
+            max: 1,
+            start: 0,
+            end: 1,
+            keys: []
+        });
+
+        // Will trigger a new onVideoReady call on success
+        // and update the state range
+        this.video.current.load(file);
+    }
+
+    /**
      * Skip ahead/behind the specified number of frames
      *
      * @param {integer} count number of frames to skip forward/back
@@ -159,19 +205,21 @@ class App extends React.Component {
     render() {
         return (
             <div className="app">
-                <Transform>
-                    <Video ref={this.video}
-                        fps={this.state.fps}
-                        onReady={this.onVideoReady}
-                        onFrame={this.onFrame}
-                        width="720" height="480"
-                        source="/timecode-2998fps.mp4"
-                    />
+                <Dropzone onFile={this.onDropFile}>
+                    <Transform>
+                        <Video ref={this.video}
+                            fps={this.state.fps}
+                            onReady={this.onVideoReady}
+                            onFrame={this.onFrame}
+                            width="720" height="480"
+                            source="/timecode-2998fps.mp4"
+                        />
 
-                    <Draw ref={this.draw}
-                        width="720" height="480"
-                    />
-                </Transform>
+                        <Draw ref={this.draw}
+                            width="720" height="480"
+                        />
+                    </Transform>
+                </Dropzone>
 
                 <TimeSlider ref={this.time}
                     fps={this.state.fps}
