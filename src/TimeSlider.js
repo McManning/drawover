@@ -28,6 +28,7 @@ class TimeSlider extends React.Component {
         this.onSliderChange = this.onSliderChange.bind(this);
         this.onInputChange = this.onInputChange.bind(this);
         this.onInputBlur = this.onInputBlur.bind(this);
+        this.onClick = this.onClick.bind(this);
     }
 
     setRange(start, end) {
@@ -287,7 +288,7 @@ class TimeSlider extends React.Component {
                             <div key={frame} className="time-slider-key" style={{
                                 left: ((frame - start) / (end - start) * 100) + '%',
                                 width: 100 / (end - start) + '%',
-                            }} data-type={type}></div>
+                            }} data-type={type} data-frame={frame}></div>
                         );
                     }
 
@@ -297,9 +298,28 @@ class TimeSlider extends React.Component {
         );
     }
 
+    onClick(e) {
+        // If we clicked on a key frame, jump to it
+        if (e.target.dataset.frame) {
+            const frame = e.target.dataset.frame;
+
+            // Only update if it's actually been changed.
+            if (this.state.current !== frame) {
+                this.setState({
+                    current: frame,
+                    currentInput: frame
+                });
+
+                if (this.props.onChange) {
+                    this.props.onChange(frame);
+                }
+            }
+        }
+    }
+
     render() {
         return (
-            <div className="time-slider">
+            <div className="time-slider" onClick={this.onClick}>
                 <div className="time-slider-noui">
                     <div ref={this.ref}></div>
                     {this.renderKeys(this.props.keys)}
