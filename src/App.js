@@ -68,7 +68,7 @@ class App extends React.Component {
     }
 
     componentDidMount() {
-        this.changeVideoSource('/bigbuckbunny.webm');
+        this.changeVideoSource('timecode-2998fps.mp4');
     }
 
     componentDidUpdate(prevProps, prevState) {
@@ -269,6 +269,10 @@ class App extends React.Component {
             end: 1,
             keys: []
         });
+
+        if (file instanceof File) {
+            url = URL.createObjectURL(file);
+        }
 
         // Will trigger a new onVideoReady call on success
         // and update the state range

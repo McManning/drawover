@@ -108,18 +108,12 @@ class Video extends React.Component {
     }
 
     /**
-     * Load a new source file
+     * Load a new source to be played
      *
-     * @param {File|string} file data to load
+     * @param {string} src data to load
      */
-    load(file) {
-        if (file instanceof File) {
-            this.video.current.src = URL.createObjectURL(file);
-        } else if (typeof file === 'string') {
-            this.video.current.src = file;
-        } else {
-            throw new Error('Unknown file typeof', file);
-        }
+    load(src) {
+        this.video.current.src = src;
     }
 
     /**
