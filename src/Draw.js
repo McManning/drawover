@@ -106,6 +106,23 @@ class Draw extends React.Component {
                 this.props.rotate
             );
         }
+
+        // If history updated, update the cached empty status
+        if (prevState.historyIndex !== this.state.historyIndex) {
+            this.setState({
+                empty: this.isEmpty()
+            });
+        }
+
+        // If we went from an empty canvas to non-empty, notify `onStart`
+        if (prevState.empty && !this.state.empty && this.props.onStart) {
+            this.props.onStart();
+        }
+
+        // Going from non-empty to empty, notify `onClear`
+        if (!prevState.empty && this.state.empty && this.props.onClear) {
+            this.props.onClear();
+        }
     }
 
     clearTemp() {
@@ -841,7 +858,10 @@ Draw.defaultProps = {
         y: 0
     },
     scale: 1,
-    rotate: 0
+    rotate: 0,
+
+    onStart: null,
+    onClear: null
 };
 
 export default Draw;

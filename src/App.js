@@ -65,6 +65,10 @@ class App extends React.Component {
         this.onPlaybackPlay = this.onPlaybackPlay.bind(this);
         this.onPlaybackPause = this.onPlaybackPause.bind(this);
         this.onPlaybackSkip = this.onPlaybackSkip.bind(this);
+
+        // Events for <Draw>
+        this.onDrawStart = this.onDrawStart.bind(this);
+        this.onDrawClear = this.onDrawClear.bind(this);
     }
 
     componentDidMount() {
@@ -211,6 +215,36 @@ class App extends React.Component {
             this.time.current.setKey(frame, '#00FF00');
         }
     }
+
+    /**
+     * Draw layer had a first edit made.
+     *
+     * This can also fire if the draw layer is cleared
+     * and then started again (or undo + redo)
+     */
+    onDrawStart() {
+        const frame = this.video.current.frame;
+        console.log('Draw Start', frame);
+
+        this.time.current.setKey(frame, '#FF0000');
+    }
+
+    /**
+     * Draw layer is cleared of content, either by
+     * erasure, clear button, or history undos
+     */
+    onDrawClear() {
+        const frame = this.video.current.frame;
+        console.log('Draw Clear', frame);
+
+        // Reset to prior key color
+        if (this.videoCache.current.isCached(frame)) {
+            this.time.current.setKey(frame, '#00FF00');
+        } else {
+            this.time.current.deleteKey(frame);
+        }
+    }
+
     /**
      * Swap Draw content to match the given frame
      *
@@ -295,6 +329,8 @@ class App extends React.Component {
 
                         <Draw ref={this.draw}
                             width="720" height="480"
+                            onStart={this.onDrawStart}
+                            onClear={this.onDrawClear}
                         />
                     </Transform>
                 </Dropzone>
