@@ -223,12 +223,25 @@ li.is-undone {
     width: 2px;
     height: 15px;
     /*margin-left: -1px;*/
-    background: red;
 
     /* width scales with the steps, with a minimum of 2px */
     min-width: 2px;
 
     border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.time-slider-key[data-type="cached-frame"] {
+    background: #ccc;
+}
+
+.time-slider-key[data-type="draw-frame"] {
+    background: #ff0000;
+
+    /* indexed to ensure that it gets rendered over cached-frame keys
+        since this takes priority from user's POV */
+    z-index: 1;
+
+    cursor: pointer;
 }
 
 .dropzone {

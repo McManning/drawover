@@ -212,7 +212,7 @@ class App extends React.Component {
     onFrameCache(frame) {
         // Push as a key on the timeline to indicate that it's been cached
         if (!this.time.current.hasKey(frame)) {
-            this.time.current.setKey(frame, '#00FF00');
+            this.time.current.setKey(frame, 'cached-frame');
         }
     }
 
@@ -226,7 +226,7 @@ class App extends React.Component {
         const frame = this.video.current.frame;
         console.log('Draw Start', frame);
 
-        this.time.current.setKey(frame, '#FF0000');
+        this.time.current.setKey(frame, 'draw-frame');
     }
 
     /**
@@ -239,7 +239,7 @@ class App extends React.Component {
 
         // Reset to prior key color
         if (this.videoCache.current.isCached(frame)) {
-            this.time.current.setKey(frame, '#00FF00');
+            this.time.current.setKey(frame, 'cached-frame');
         } else {
             this.time.current.deleteKey(frame);
         }
@@ -259,7 +259,7 @@ class App extends React.Component {
     changeDrawover(prevFrame, frame) {
         // If this is a newly added frame, add it as a keyframe to the time slider
         if (!this.draw.current.isEmpty()) {
-            this.time.current.setKey(prevFrame, '#FF0000');
+            this.time.current.setKey(prevFrame, 'draw-frame');
 
             if (!(prevFrame in this.drawCache)) {
                 const keys = this.state.keys;

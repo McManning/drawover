@@ -242,18 +242,17 @@ class TimeSlider extends React.Component {
      * Set a frame as being keyed (colored on the timeline)
      *
      * @param {Number} frame
-     * @param {string} key
+     * @param {string} type Type string, will be used to identify keys on the DOM
+     *                      (as a data-type entry)
      */
-    setKey(frame, color) {
-        this.state.keys[frame] = color;
+    setKey(frame, type) {
+        const keys = this.state.keys;
+        keys[frame] = type;
 
-        // Flip state to force a redraw
-        // TODO: Really keys should be on state but
-        // not sure how this will perform when we set
-        // a LOT of keys at once (e.g. cache filling)
-        // might miss keys?
+        // We're just setting state to itself here,
+        // but this'll trigger the redraw we need.
         this.setState({
-            keys: this.state.keys
+            keys: keys
         });
     }
 
@@ -281,15 +280,14 @@ class TimeSlider extends React.Component {
         return (
             <div className="time-slider-keys">
                 {Object.keys(this.state.keys).map((frame) => {
-                    const color = this.state.keys[frame];
+                    const type = this.state.keys[frame];
 
                     if (frame >= start && frame <= end) {
                         return (
                             <div key={frame} className="time-slider-key" style={{
                                 left: ((frame - start) / (end - start) * 100) + '%',
                                 width: 100 / (end - start) + '%',
-                                backgroundColor: color
-                            }}></div>
+                            }} data-type={type}></div>
                         );
                     }
 
