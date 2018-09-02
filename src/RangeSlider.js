@@ -142,15 +142,15 @@ class RangeSlider extends React.Component {
         return (
             <div className="range-slider">
                 <br/><br/>
-                <input type="number" name="min" value={this.props.min} readOnly />
-                <input type="number" name="start" value={this.state.start}
+                <input type="number" name="min" value={Math.round(this.props.min)} readOnly />
+                <input type="number" name="start" value={Math.round(this.state.start)}
                     onChange={this.onChange} onBlur={this.onChangeStartFrame} />
 
                 <div ref={this.ref}></div>
 
-                <input type="number" name="end" value={this.state.end}
+                <input type="number" name="end" value={Math.round(this.state.end)}
                     onChange={this.onChange} onBlur={this.onChangeEndFrame} />
-                <input type="number" name="max" value={this.props.max} readOnly />
+                <input type="number" name="max" value={Math.round(this.props.max)} readOnly />
             </div>
         );
     }
