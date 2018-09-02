@@ -9,6 +9,8 @@ import Transform from './Transform';
 import Dropzone from './Dropzone';
 import Playback from './Playback';
 
+import VideoCache from './VideoCache';
+
 class App extends React.Component {
     constructor(props) {
         super(props);
@@ -37,6 +39,7 @@ class App extends React.Component {
         this.drawCache = {};
 
         this.video = React.createRef();
+        this.videoCache = React.createRef();
         this.time = React.createRef();
         this.range = React.createRef();
         this.draw = React.createRef();
@@ -44,6 +47,9 @@ class App extends React.Component {
         // Events for <Video>
         this.onVideoReady = this.onVideoReady.bind(this);
         this.onFrame = this.onFrame.bind(this);
+
+        // Events for <VideoCache>
+        this.onFrameCache = this.onFrameCache.bind(this);
 
         // Events for <RangeSlider>
         this.onPickRange = this.onPickRange.bind(this);
@@ -125,6 +131,13 @@ class App extends React.Component {
 
         this.video.current.pause();
         this.video.current.frame = frame;
+
+        // Cache frames forward
+        // TODO: Eventually move over to only when we're drawing frames
+        this.videoCache.current.cache(
+            frame,
+            this.state.fps * this.props.cacheSeekAhead
+        );
     }
 
     /**
@@ -188,6 +201,16 @@ class App extends React.Component {
 
         // TODO: Check for other types of files and ways to handle them
     }
+
+    /**
+     * Frame has been added to the VideoCache
+     */
+    onFrameCache(frame) {
+        // Push as a key on the timeline to indicate that it's been cached
+        if (!this.time.current.hasKey(frame)) {
+            this.time.current.setKey(frame, '#00FF00');
+        }
+    }
     /**
      * Swap Draw content to match the given frame
      *
@@ -200,8 +223,10 @@ class App extends React.Component {
      * @param {Number} frame to display new Draw content
      */
     changeDrawover(prevFrame, frame) {
-        // If this is a newly added frame, update our list of keyed frames
+        // If this is a newly added frame, add it as a keyframe to the time slider
         if (!this.draw.current.isEmpty()) {
+            this.time.current.setKey(prevFrame, '#FF0000');
+
             if (!(prevFrame in this.drawCache)) {
                 const keys = this.state.keys;
                 keys.push(prevFrame);
@@ -210,6 +235,8 @@ class App extends React.Component {
 
             // Store current Draw content to the cache
             this.drawCache[prevFrame] = this.draw.current.serialize();
+
+            // TODO: Run the video caching around this key
         }
 
         this.draw.current.reset();
@@ -229,6 +256,8 @@ class App extends React.Component {
      * fresh with the new video
      */
     changeVideoSource(file) {
+        let url = file;
+
         this.setState({
             frame: 0,
             ready: false,
@@ -243,7 +272,8 @@ class App extends React.Component {
 
         // Will trigger a new onVideoReady call on success
         // and update the state range
-        this.video.current.load(file);
+        this.video.current.load(url);
+        this.videoCache.current.load(url);
     }
 
     render() {
@@ -284,9 +314,23 @@ class App extends React.Component {
                     onPlay={this.onPlaybackPlay}
                     onSpeed={this.onPlaybackSpeed}
                 />
+
+                <VideoCache ref={this.videoCache}
+                    workers={this.props.cacheWorkers}
+                    onCache={this.onFrameCache} />
             </div>
         );
     }
 }
+
+App.defaultProps = {
+    // How many concurrent workers should be used
+    // in the child VideoCache component.
+    cacheWorkers: 5,
+
+    // How many frames ahead from a cached frame
+    // to cache alongside it (in seconds)
+    cacheSeekAhead: 2
+};
 
 export default App;

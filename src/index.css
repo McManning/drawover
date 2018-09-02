@@ -227,6 +227,8 @@ li.is-undone {
 
     /* width scales with the steps, with a minimum of 2px */
     min-width: 2px;
+
+    border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .dropzone {
