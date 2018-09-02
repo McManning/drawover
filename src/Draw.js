@@ -635,7 +635,7 @@ class Draw extends React.Component {
      */
     onClear() {
         this.clear();
-        this.pushHistory('clear', '', '', []);
+        this.pushHistory(Draw.CLEAR_TOOL, '', '', []);
 
         // Hide the tools menu, if visible
         this.setState({
