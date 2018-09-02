@@ -5,10 +5,6 @@ class VideoCache extends React.Component {
     constructor(props) {
         super(props);
 
-        this.caching = false;
-        this.cachingStartFrame = 0;
-        this.cacheDistance = 0;
-
         // Matching frame #'s to data
         this.cachedBlobs = {};
 
@@ -158,6 +154,8 @@ class VideoCache extends React.Component {
      * Start caching frames outward from the given frame
      */
     cache(frame, distance) {
+        const iframe = parseInt(frame, 10);
+
         // TODO: Queue up the rule until the previous finishes
         if (this.caching) {
             console.log('Waiting for previous cache to finish');
@@ -182,9 +180,9 @@ class VideoCache extends React.Component {
 
         // Split the work into available workers
         const distancePerWorker = Math.floor(distance / available.length);
-        const end = frame + distance;
+        const end = iframe + distance;
 
-        let start = frame;
+        let start = iframe;
         for (let i = 0; i < available.length - 1; i++) {
             this.work(i, start, distancePerWorker);
             start += distancePerWorker;
