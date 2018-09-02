@@ -532,14 +532,26 @@ class Draw extends React.Component {
             return true;
         }
 
-        // Consider us "empty" if the last tool was a clear.
         const lastTool = this.state.history[this.state.historyIndex - 1].tool;
-        return lastTool === Draw.CLEAR_TOOL;
 
-        // TODO: Detecting an empty canvas based on actual pixels.
+        // Consider us "empty" if the last tool was a clear.
+        if (lastTool === Draw.CLEAR_TOOL) {
+            return true;
+        }
+
+        // If it's a pen, we know we're not empty
+        if (lastTool === Draw.PEN_TOOL) {
+            return false;
+        }
+
+        // Otherwise - it's an erase. No way to know for
+        // certain without testing the canvas pixels.
         // Can create (and cache) a `toDataURL` of a blank canvas and
-        // compare that to our data URL of this canvas. But might be slow AF
-        // and a last resort IFF there's pen + erase both detected in history.
+        // compare that to our data URL of this canvas.
+
+        // .. But this is slow. And we call this method often (every
+        // history stack update) so for now, we'll assume it's not empty
+        return true;
     }
 
     /**
