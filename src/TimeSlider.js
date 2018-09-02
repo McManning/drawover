@@ -18,7 +18,9 @@ class TimeSlider extends React.Component {
             start: 0,
             end: 1,
             current: 0,
-            currentInput: 0
+            currentInput: 0,
+
+            keys: {}
         };
 
         this.ref = React.createRef();
@@ -26,8 +28,6 @@ class TimeSlider extends React.Component {
         this.onSliderChange = this.onSliderChange.bind(this);
         this.onInputChange = this.onInputChange.bind(this);
         this.onInputBlur = this.onInputBlur.bind(this);
-
-        this.mod = 0;
     }
 
     setRange(start, end) {
@@ -239,6 +239,40 @@ class TimeSlider extends React.Component {
     }
 
     /**
+     * Set a frame as being keyed (colored on the timeline)
+     *
+     * @param {Number} frame
+     * @param {string} key
+     */
+    setKey(frame, color) {
+        this.state.keys[frame] = color;
+
+        // Flip state to force a redraw
+        // TODO: Really keys should be on state but
+        // not sure how this will perform when we set
+        // a LOT of keys at once (e.g. cache filling)
+        // might miss keys?
+        this.setState({
+            keys: this.state.keys
+        });
+    }
+
+    /**
+     * Returns true if the given frame has been keyed
+     *
+     * @param {Number} frame
+     *
+     * @return {boolean}
+     */
+    hasKey(frame) {
+        return frame in this.state.keys;
+    }
+
+    deleteKey(frame) {
+        delete this.state.keys[frame];
+    }
+
+    /**
      * Add custom markers to the slider for keyed frames
      */
     renderKeys() {
@@ -246,12 +280,15 @@ class TimeSlider extends React.Component {
 
         return (
             <div className="time-slider-keys">
-                {this.props.keys.map((key) => {
-                    if (key >= start && key <= end) {
+                {Object.keys(this.state.keys).map((frame) => {
+                    const color = this.state.keys[frame];
+
+                    if (frame >= start && frame <= end) {
                         return (
-                            <div key={key} className="time-slider-key" style={{
-                                left: ((key - start) / (end - start) * 100) + '%',
-                                width: 100 / (end - start) + '%'
+                            <div key={frame} className="time-slider-key" style={{
+                                left: ((frame - start) / (end - start) * 100) + '%',
+                                width: 100 / (end - start) + '%',
+                                backgroundColor: color
                             }}></div>
                         );
                     }
