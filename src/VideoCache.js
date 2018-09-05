@@ -156,12 +156,6 @@ class VideoCache extends React.Component {
     cache(frame, distance) {
         const iframe = parseInt(frame, 10);
 
-        // TODO: Queue up the rule until the previous finishes
-        if (this.caching) {
-            console.log('Waiting for previous cache to finish');
-            return;
-        }
-
         // Find available workers
         let available = [];
         this.workers.forEach((worker, index) => {
