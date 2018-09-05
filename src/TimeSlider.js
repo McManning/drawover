@@ -252,9 +252,7 @@ class TimeSlider extends React.Component {
 
         // We're just setting state to itself here,
         // but this'll trigger the redraw we need.
-        this.setState({
-            keys: keys
-        });
+        this.setState({ keys });
     }
 
     /**
@@ -268,8 +266,25 @@ class TimeSlider extends React.Component {
         return frame in this.state.keys;
     }
 
+    /**
+     * Remove key for a given frame
+     *
+     * @param {Number} frame
+     */
     deleteKey(frame) {
-        delete this.state.keys[frame];
+        const keys = this.state.keys;
+        delete keys[frame];
+
+        this.setState({ keys });
+    }
+
+    /**
+     * Remove all keys from the timeline and redraw
+     */
+    deleteAllKeys() {
+        this.setState({
+            keys: {}
+        });
     }
 
     /**

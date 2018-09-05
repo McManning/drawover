@@ -348,12 +348,6 @@ class App extends React.Component {
         if (!this.draw.current.isEmpty()) {
             this.time.current.setKey(prevFrame, 'draw-frame');
 
-            if (!(prevFrame in this.drawCache)) {
-                const keys = this.state.keys;
-                keys.push(prevFrame);
-                this.setState({ keys });
-            }
-
             // Store current Draw content to the cache
             this.drawCache[prevFrame] = this.draw.current.serialize();
 
@@ -400,10 +394,16 @@ class App extends React.Component {
             videoSourceUrl: url
         });
 
+        this.time.current.deleteAllKeys();
+
         // Will trigger a new onVideoReady call on success
         // and update the state range
         this.video.current.load(url);
         // this.videoCache.current.load(url);
+
+        // Clear all loaded draw frames
+        this.draw.current.reset();
+        this.drawCache = {};
 
         // if (this.frame.contentWindow.load) {
         //     this.frame.contentWindow.load(url);
@@ -426,6 +426,9 @@ class App extends React.Component {
         // };
 
         // reader.readAsArrayBuffer(file);
+
+        // TODO: Attempt to match file to something in localStorage
+        // and reload local draw frames (and frame caches?)
     }
 
     render() {
@@ -451,7 +454,6 @@ class App extends React.Component {
 
                 <TimeSlider ref={this.time}
                     fps={this.state.fps}
-                    keys={this.state.keys}
                     onChange={this.onPickFrame} />
 
                 <RangeSlider ref={this.range}
