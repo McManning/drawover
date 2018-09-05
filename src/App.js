@@ -97,7 +97,7 @@ class App extends React.Component {
         // // MUST get added to the DOM before it loads
         // document.body.appendChild(this.frame);
 
-        this.createWorkers();
+        // this.createWorkers();
 
         this.changeVideoSource('timecode-2998fps.mp4');
     }
@@ -218,10 +218,10 @@ class App extends React.Component {
 
         // Cache frames forward
         // TODO: Eventually move over to only when we're drawing frames
-        this.videoCache.current.cache(
-            frame,
-            this.state.fps * this.props.cacheSeekAhead
-        );
+        // this.videoCache.current.cache(
+        //     frame,
+        //     this.state.fps * this.props.cacheSeekAhead
+        // );
 
         // this.frame.contentWindow.cache(
         //     frame,
@@ -401,7 +401,7 @@ class App extends React.Component {
         // Will trigger a new onVideoReady call on success
         // and update the state range
         this.video.current.load(url);
-        this.videoCache.current.load(url);
+        // this.videoCache.current.load(url);
 
         // if (this.frame.contentWindow.load) {
         //     this.frame.contentWindow.load(url);
@@ -409,21 +409,21 @@ class App extends React.Component {
 
         // For experimentation - only do the below for drag & dropped files
         // (since they're all we care about - no server streaming)
-        if (!(file instanceof File)) {
-            return;
-        }
+        // if (!(file instanceof File)) {
+        //     return;
+        // }
 
-        let reader = new FileReader();
-        let that = this;
-        reader.onload = function () {
-            that.worker.postMessage({
-                type: 'load',
-                filename: filename,
-                data: this.result
-            });
-        };
+        // let reader = new FileReader();
+        // let that = this;
+        // reader.onload = function () {
+        //     that.worker.postMessage({
+        //         type: 'load',
+        //         filename: filename,
+        //         data: this.result
+        //     });
+        // };
 
-        reader.readAsArrayBuffer(file);
+        // reader.readAsArrayBuffer(file);
     }
 
     render() {
