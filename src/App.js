@@ -31,7 +31,11 @@ class App extends React.Component {
 
             // List of key markers to send to TimeSlider.
             // Populated with frame #'s that we draw over
-            keys: []
+            keys: [],
+
+            // Video data
+            videoFilename: null,
+            videoSourceUrl: null
         };
 
         // Cache of serialized Draw content per-frame.
@@ -69,9 +73,32 @@ class App extends React.Component {
         // Events for <Draw>
         this.onDrawStart = this.onDrawStart.bind(this);
         this.onDrawClear = this.onDrawClear.bind(this);
+
+        // Events for Web Workers
+        this.onWorkerMessage = this.onWorkerMessage.bind(this);
+        this.onWorkerError = this.onWorkerError.bind(this);
     }
 
     componentDidMount() {
+        // Setup a worker iframe for video caching
+        // this.frame = document.createElement('iframe');
+        // this.frame.onload = function () {
+        //     console.log('Frame loaded');
+        // };
+        // this.frame.srcdoc = `
+        //     <html>
+        //     <body>
+        //         <script type="text/javascript" src="iframe-worker.js"></script>
+        //         <script>console.log('Hello from iframe!');</script>
+        //     </body>
+        //     </html>
+        // `;
+
+        // // MUST get added to the DOM before it loads
+        // document.body.appendChild(this.frame);
+
+        this.createWorkers();
+
         this.changeVideoSource('timecode-2998fps.mp4');
     }
 
@@ -95,6 +122,59 @@ class App extends React.Component {
             start: 0,
             end: this.video.current.totalFrames
         });
+    }
+
+    /**
+     * Message posted from one of the Web Workers
+     */
+    onWorkerMessage(e) {
+        var message = e.data;
+
+        // Worker is ready to receive data, push video source into it
+        if (message.type === 'ready') {
+            this.worker.ready = true;
+            console.log('FFMPEG Worker ready');
+
+            // Send the current video to the worker
+            // Skip, "current" is a remote file for testing. Only
+            // act on an dropped file (see changeVideoSource)
+            // this.worker.postMessage({
+            //     type: 'load',
+            //     filename: this.state.videoFilename,
+            //     data: this.state.videoSourceUrl
+            // });
+        } else if (message.type === 'loaded') {
+            console.log('Worker has loaded the video source');
+
+            // Do a quick info test
+            this.worker.postMessage({
+                type: 'info'
+            });
+        } else if (message.type === 'info') {
+            console.log(message.stdout);
+            console.error(message.stderr);
+        } else {
+            console.error('Unhandled worker message', message);
+        }
+
+        // and so on.
+    }
+
+    onWorkerError() {
+        console.error(arguments);
+        alert('Error that we do not handle yet!');
+    }
+
+    /**
+     * Create Web Workers for FFMPEG processing of our source videos
+     */
+    createWorkers() {
+        this.worker = new Worker('ffmpeg-worker.js');
+        this.worker.ready = false;
+        this.worker.onmessage = this.onWorkerMessage;
+        this.worker.onerror = this.onWorkerError;
+
+        // TODO: Pooling and all that fancy stuff.
     }
 
     /**
@@ -142,6 +222,11 @@ class App extends React.Component {
             frame,
             this.state.fps * this.props.cacheSeekAhead
         );
+
+        // this.frame.contentWindow.cache(
+        //     frame,
+        //     this.state.fps * this.props.cacheSeekAhead
+        // );
     }
 
     /**
@@ -291,6 +376,12 @@ class App extends React.Component {
      */
     changeVideoSource(file) {
         let url = file;
+        let filename = file;
+
+        if (file instanceof File) {
+            url = URL.createObjectURL(file);
+            filename = file.name;
+        }
 
         this.setState({
             frame: 0,
@@ -301,17 +392,38 @@ class App extends React.Component {
             max: 1,
             start: 0,
             end: 1,
-            keys: []
-        });
+            keys: [],
 
-        if (file instanceof File) {
-            url = URL.createObjectURL(file);
-        }
+            videoFilename: filename,
+            videoSourceUrl: url
+        });
 
         // Will trigger a new onVideoReady call on success
         // and update the state range
         this.video.current.load(url);
         this.videoCache.current.load(url);
+
+        // if (this.frame.contentWindow.load) {
+        //     this.frame.contentWindow.load(url);
+        // }
+
+        // For experimentation - only do the below for drag & dropped files
+        // (since they're all we care about - no server streaming)
+        if (!(file instanceof File)) {
+            return;
+        }
+
+        let reader = new FileReader();
+        let that = this;
+        reader.onload = function () {
+            that.worker.postMessage({
+                type: 'load',
+                filename: filename,
+                data: this.result
+            });
+        };
+
+        reader.readAsArrayBuffer(file);
     }
 
     render() {
