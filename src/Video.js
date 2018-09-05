@@ -157,6 +157,12 @@ class Video extends React.Component {
         if (delta > interval) {
             this.previousFrameTime = now - (delta % interval);
             this.drawCurrentFrame();
+
+            // Clamp playback between start & end frame range, looping
+            // whenever we run past the end frame.
+            if (this.frame < this.startFrame || this.frame > this.endFrame) {
+                this.frame = this.startFrame;
+            }
         }
     }
 

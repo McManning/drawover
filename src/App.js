@@ -197,10 +197,12 @@ class App extends React.Component {
     /**
      * Event handler for when the range slider changes active range.
      *
-     * Update our time slider with the new range
+     * Update our time slider with the new range and clamp video playback
      */
     onPickRange(start, end) {
         this.time.current.setRange(start, end);
+        this.video.current.startFrame = start;
+        this.video.current.endFrame = end;
     }
 
     /**
