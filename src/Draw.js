@@ -784,20 +784,22 @@ class Draw extends React.Component {
     renderHistory() {
         const { history, historyIndex } = this.state;
 
-         <ul className="draw-history">
-            {history.map((event, idx) =>
-                <li key={idx} className={idx >= historyIndex ? 'is-undone' : ''}>
-                    {idx}:
+        return (
+            <ul className="draw-history">
+                {history.map((event, idx) =>
+                    <li key={idx} className={idx >= historyIndex ? 'is-undone' : ''}>
+                        {idx}:
 
-                    {idx === historyIndex &&
-                        <span>*</span>
-                    }
+                        {idx === historyIndex &&
+                            <span>*</span>
+                        }
 
-                    {event.tool} - {event.color} -
-                    {event.lineWidth} - {event.points.length}
-                </li>
-            )}
-        </ul>
+                        {event.tool} - {event.color} -
+                        {event.lineWidth} - {event.points.length}
+                    </li>
+                )}
+            </ul>
+        );
     }
 
     /**
