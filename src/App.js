@@ -10,6 +10,10 @@ import Dropzone from './Dropzone';
 import Playback from './Playback';
 
 import VideoCache from './VideoCache';
+import WorkerPool from './WorkerPool';
+
+import Logger from './Log';
+const log = new Logger('App');
 
 class App extends React.Component {
     constructor(props) {
@@ -43,7 +47,7 @@ class App extends React.Component {
         this.drawCache = {};
 
         this.video = React.createRef();
-        this.videoCache = React.createRef();
+        this.workers = React.createRef();
         this.time = React.createRef();
         this.range = React.createRef();
         this.draw = React.createRef();
@@ -74,9 +78,9 @@ class App extends React.Component {
         this.onDrawStart = this.onDrawStart.bind(this);
         this.onDrawClear = this.onDrawClear.bind(this);
 
-        // Events for Web Workers
-        this.onWorkerMessage = this.onWorkerMessage.bind(this);
-        this.onWorkerError = this.onWorkerError.bind(this);
+        // Events for <WorkerPool>
+        this.onWorkerMetadata = this.onWorkerMetadata.bind(this);
+        this.onWorkerFrames = this.onWorkerFrames.bind(this);
     }
 
     componentDidMount() {
@@ -124,57 +128,12 @@ class App extends React.Component {
         });
     }
 
-    /**
-     * Message posted from one of the Web Workers
-     */
-    onWorkerMessage(e) {
-        var message = e.data;
-
-        // Worker is ready to receive data, push video source into it
-        if (message.type === 'ready') {
-            this.worker.ready = true;
-            console.log('FFMPEG Worker ready');
-
-            // Send the current video to the worker
-            // Skip, "current" is a remote file for testing. Only
-            // act on an dropped file (see changeVideoSource)
-            // this.worker.postMessage({
-            //     type: 'load',
-            //     filename: this.state.videoFilename,
-            //     data: this.state.videoSourceUrl
-            // });
-        } else if (message.type === 'loaded') {
-            console.log('Worker has loaded the video source');
-
-            // Do a quick info test
-            this.worker.postMessage({
-                type: 'info'
-            });
-        } else if (message.type === 'info') {
-            console.log(message.stdout);
-            console.error(message.stderr);
-        } else {
-            console.error('Unhandled worker message', message);
-        }
-
-        // and so on.
+    onWorkerFrames(frames) {
+        log.info(frames);
     }
 
-    onWorkerError() {
-        console.error(arguments);
-        alert('Error that we do not handle yet!');
-    }
-
-    /**
-     * Create Web Workers for FFMPEG processing of our source videos
-     */
-    createWorkers() {
-        this.worker = new Worker('ffmpeg-worker.js');
-        this.worker.ready = false;
-        this.worker.onmessage = this.onWorkerMessage;
-        this.worker.onerror = this.onWorkerError;
-
-        // TODO: Pooling and all that fancy stuff.
+    onWorkerMetadata(metadata) {
+        log.info(metadata);
     }
 
     /**
@@ -229,6 +188,8 @@ class App extends React.Component {
         //     frame,
         //     this.state.fps * this.props.cacheSeekAhead
         // );
+
+        this.workers.current.extractFrames(frame, 10, []);
     }
 
     /**
@@ -282,7 +243,7 @@ class App extends React.Component {
      * If it's some other persisted file, load that instead.
      */
     onDropFile(file) {
-        console.log(file);
+        log.info(file);
 
         if (this.video.current.canLoad(file)) {
             this.changeVideoSource(file);
@@ -311,7 +272,7 @@ class App extends React.Component {
      */
     onDrawStart() {
         const frame = this.video.current.frame;
-        console.log('Draw Start', frame);
+        log.info('Draw Start', frame);
 
         this.time.current.setKey(frame, 'draw-frame');
     }
@@ -322,14 +283,14 @@ class App extends React.Component {
      */
     onDrawClear() {
         const frame = this.video.current.frame;
-        console.log('Draw Clear', frame);
+        log.info('Draw Clear', frame);
 
         // Reset to prior key color
-        if (this.videoCache.current.isCached(frame)) {
-            this.time.current.setKey(frame, 'cached-frame');
-        } else {
+        // if (this.videoCache.current.isCached(frame)) {
+        //     this.time.current.setKey(frame, 'cached-frame');
+        // } else {
             this.time.current.deleteKey(frame);
-        }
+        // }
     }
 
     /**
@@ -409,26 +370,11 @@ class App extends React.Component {
         //     this.frame.contentWindow.load(url);
         // }
 
-        // For experimentation - only do the below for drag & dropped files
-        // (since they're all we care about - no server streaming)
-        // if (!(file instanceof File)) {
-        //     return;
-        // }
-
-        // let reader = new FileReader();
-        // let that = this;
-        // reader.onload = function () {
-        //     that.worker.postMessage({
-        //         type: 'load',
-        //         filename: filename,
-        //         data: this.result
-        //     });
-        // };
-
-        // reader.readAsArrayBuffer(file);
-
-        // TODO: Attempt to match file to something in localStorage
-        // and reload local draw frames (and frame caches?)
+        if (file instanceof File) {
+            this.workers.current.load(file);
+        } else {
+            log.warn('Skipping WorkerPool load for non-local source file');
+        }
     }
 
     render() {
@@ -471,9 +417,13 @@ class App extends React.Component {
                     onSpeed={this.onPlaybackSpeed}
                 />
 
-                <VideoCache ref={this.videoCache}
+                {/* <VideoCache ref={this.videoCache}
                     workers={this.props.cacheWorkers}
-                    onCache={this.onFrameCache} />
+                    onCache={this.onFrameCache} /> */}
+
+                <WorkerPool ref={this.workers}
+                    onMetadata={this.onWorkerMetadata}
+                    onFrames={this.onWorkerFrames} />
             </div>
         );
     }
