@@ -4,7 +4,7 @@ import React from 'react';
 /**
  * Frame drawover
  *
- * <Draw width="720" height="480"
+ * <Draw width="720" height="480" readonly={boolean}
  *       scale="1" rotate="0" translate={x: 0, y: 0} />
  *
  * Includes basic draw tools:
@@ -72,8 +72,6 @@ class Draw extends React.Component {
     }
 
     componentDidMount() {
-        this.setPen(this.penColors[0]);
-
         // Set initial canvas transformation from props
         this.transform(
             this.props.translate,
@@ -81,8 +79,12 @@ class Draw extends React.Component {
             this.props.rotate
         );
 
-        // Add non-React event listener for context menu (right click)
-        this.temp.current.addEventListener('contextmenu', this.onContextMenu);
+        // Add non-React event listener for context menu 
+        // (right click) and a default pen
+        if (!this.props.readonly) {
+            this.setPen(this.penColors[0]);
+            this.temp.current.addEventListener('contextmenu', this.onContextMenu);
+        }
     }
 
     /**
@@ -90,7 +92,9 @@ class Draw extends React.Component {
      */
     componentDidUpdate(prevProps, prevState) {
         // On tool change or line width change, update our custom cursor to match
-        if (prevState.tool !== this.state.tool || prevState.lineWidth !== this.state.lineWidth) {
+        if (prevState.tool !== this.state.tool || 
+            prevState.lineWidth !== this.state.lineWidth
+        ) {
             this.redrawCursorSVG();
         }
 
@@ -125,13 +129,18 @@ class Draw extends React.Component {
         }
     }
 
+    /**
+     * Clear the temporary canvas used for storing the current line
+     */
     clearTemp() {
         const ctx = this.tempContext;
 
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, this.temp.current.width, this.temp.current.height);
-        ctx.restore();
+        if (ctx) {
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, this.temp.current.width, this.temp.current.height);
+            ctx.restore();   
+        }
     }
 
     /**
@@ -298,6 +307,8 @@ class Draw extends React.Component {
 
     /**
      * Redraw the main canvas up to `historyIndex`
+     *
+     * @param {Number} historyIndex in range [0, history.length]
      */
     redraw(historyIndex) {
         const ctx = this.canvasContext;
@@ -330,6 +341,22 @@ class Draw extends React.Component {
         }
     }
 
+    /**
+     * Perform a pen tool draw operation on the desired canvas
+     *
+     * A quadratic curve is drawn through `points` to create
+     * a smooth curve across the canvas
+     *
+     * This also supports an erase tool by changing the canvas
+     * operation that the stroke utilizes to `destination-out`
+     *
+     * @param {CanvasContext2D} ctx         Target canvas context
+     * @param {string}          color       Hex color code
+     * @param {Number}          lineWidth   Stroke size of the pen
+     * @param {array}           points      Array of {x, y} pairs in canvas space
+     * @param {string}          operation   A globalCompositeOperation for the 
+     *                                      stroke (e.g. `source-over`)
+     */
     pen(ctx, color, lineWidth, points, operation) {
         let cpx, cpy, x, y;
         let i = 1;
@@ -384,7 +411,7 @@ class Draw extends React.Component {
     }
 
     /**
-     * Draw with the currently selected tool
+     * Interactive draw update with the currently selected tool
      */
     draw() {
         this.points.push({
@@ -447,6 +474,11 @@ class Draw extends React.Component {
         });
     }
 
+    /**
+     * Tools menu event handler to change state.lineWidth
+     * 
+     * @param {SyntheticEvent} e
+     */
     onChangeLineWidth(e) {
         const ctx = this.canvas.current.getContext('2d');
         const tempCtx = this.temp.current.getContext('2d');
@@ -459,6 +491,14 @@ class Draw extends React.Component {
         });
     }
 
+    /**
+     * Add a new stroke or operation to the history stack
+     *
+     * @param {Number} tool One of the *_TOOL constants
+     * @param {string} color Hex color code (if PEN_TOOL)
+     * @param {Number} lineWidth Stroke size
+     * @param {array} points {x, y} coordinate pairs (canvas space)
+     */
     pushHistory(tool, color, lineWidth, points) {
         const history = this.state.history;
         let historyIndex = this.state.historyIndex;
@@ -512,7 +552,7 @@ class Draw extends React.Component {
     /**
      * Clear the canvas and the history stack.
      *
-     * This will maintain whatever the active tool is.
+     * This will still maintain whatever the active tool was.
      */
     reset() {
         this.clear();
@@ -660,7 +700,7 @@ class Draw extends React.Component {
     }
 
     /**
-     * Clear the composite canvas
+     * Tools menu event to clear the canvas
      */
     onClear() {
         this.clear();
@@ -674,6 +714,8 @@ class Draw extends React.Component {
 
     /**
      * Load up a new SVG as our custom cursor based on the active tool
+     *
+     * This will create a new SVG instance and apply it to state.cursor
      */
     redrawCursorSVG() {
         const size = parseInt(this.state.lineWidth * this.props.scale, 10);
@@ -716,45 +758,61 @@ class Draw extends React.Component {
         });
     }
 
-    setTransform(a, b, c, d, e, f) {
-        this.matrix.a = a;
-        this.matrix.b = b;
-        this.matrix.c = c;
-        this.matrix.d = d;
-        this.matrix.e = e;
-        this.matrix.f = f;
-
-        this.canvasContext.setTransform(a, b, c, d, e, f);
-        this.tempContext.setTransform(a, b, c, d, e, f);
-    }
-
     get canvasContext() {
         return this.canvas.current.getContext('2d');
     }
 
+    /**
+     * Get the context of the temp canvas. 
+     * 
+     * This will return null if the component was rendered
+     * without a temp canvas (e.g. in `readonly` mode)
+     *
+     * @return {CanvasContext2D|null}
+     */ 
     get tempContext() {
+        if (!this.temp.current) {
+            return null;
+        }
+
         return this.temp.current.getContext('2d');
     }
 
+    /**
+     * Apply a transformation to the canvas
+     *
+     * This transformation will replace whatever the previous
+     * canvas transformation was. Used with components like
+     * Transform to apply canvas transformations uniformly
+     * with other DOM components.
+     *
+     * Currently, transformations are done in TSR order.
+     * 
+     * @param {object} translate {x, y} coordinate pair
+     * @param {Number} scale Canvas scale, where 1 is no scale
+     * @param {Number} rotate Radian rotation 
+     */
     transform(translate, scale, rotate) {
         const canvasCtx = this.canvasContext;
         const tempCtx = this.tempContext;
 
-        // Reset transformation
-        this.setTransform(1, 0, 0, 1, 0, 0);
-
-        // Apply affine transformations to all three matrices
+        // Apply transformations to all three matrices
+        this.matrix = this.matrix.setTransform(1, 0, 0, 1, 0, 0);
         this.matrix = this.matrix.translate(translate.x, translate.y);
         this.matrix = this.matrix.scale(scale);
         this.matrix = this.matrix.rotate(rotate * 180 / Math.PI);
 
+        canvasCtx.setTransform(1, 0, 0, 1, 0, 0);
         canvasCtx.translate(translate.x, translate.y);
         canvasCtx.scale(scale, scale);
         canvasCtx.rotate(rotate);
 
-        tempCtx.translate(translate.x, translate.y);
-        tempCtx.scale(scale, scale);
-        tempCtx.rotate(rotate);
+        if (tempCtx) {
+            tempCtx.setTransform(1, 0, 0, 1, 0, 0);
+            tempCtx.translate(translate.x, translate.y);
+            tempCtx.scale(scale, scale);
+            tempCtx.rotate(rotate);   
+        }
 
         this.redraw(this.state.historyIndex);
         this.redrawCursorSVG();
@@ -763,8 +821,8 @@ class Draw extends React.Component {
     /**
      * Convert a DOM-space point to canvas local space
      *
-     * @param {integer} x
-     * @param {integer} y
+     * @param {Number} x
+     * @param {Number} y
      */
     transformedPoint(x, y) {
         let point = this.svg.createSVGPoint();
@@ -837,20 +895,23 @@ class Draw extends React.Component {
     render() {
         // Temp canvas is rendered directly on top of the main canvas so that
         // it gets input events and drawn lines are copied down to the underlying
-        // persistent canvas.
+        // persistent canvas. The temp canvas and all its event handlers will NOT
+        // be rendered if this canvas is in readonly mode.
         return (
             <div className="draw">
-                <canvas ref={this.temp} className="draw-temp" tabIndex="0"
-                    width={this.props.width} height={this.props.height}
-                    onMouseMove={this.onMouseMove}
-                    onMouseDown={this.onMouseDown}
-                    onMouseUp={this.onMouseUp}
-                    onMouseLeave={this.onMouseUp}
-                    onKeyDown={this.onKeyDown}
-                    style={{
-                        cursor: this.state.cursor
-                    }}
-                ></canvas>
+                {!this.props.readonly && 
+                    <canvas ref={this.temp} className="draw-temp" tabIndex="0"
+                        width={this.props.width} height={this.props.height}
+                        onMouseMove={this.onMouseMove}
+                        onMouseDown={this.onMouseDown}
+                        onMouseUp={this.onMouseUp}
+                        onMouseLeave={this.onMouseUp}
+                        onKeyDown={this.onKeyDown}
+                        style={{
+                            cursor: this.state.cursor
+                        }}
+                    ></canvas>
+                }
 
                 <canvas ref={this.canvas} className="draw-canvas"
                     width={this.props.width} height={this.props.height}></canvas>
@@ -862,6 +923,8 @@ class Draw extends React.Component {
 }
 
 Draw.defaultProps = {
+    readonly: false,
+
     width: 720,
     height: 480,
 
