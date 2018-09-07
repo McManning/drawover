@@ -166,7 +166,9 @@ li.is-undone {
 /* Composite layout */
 
 .draw {
-    position: relative;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
 .draw canvas {
@@ -185,9 +187,7 @@ li.is-undone {
 
 /* absolute position the video playback behind the drawover */
 .video {
-    position: absolute;
-    top: 0;
-    left: 0;
+    position: relative;
 }
 
 .video-playback-controls {

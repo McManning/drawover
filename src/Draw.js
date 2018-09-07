@@ -5,7 +5,8 @@ import React from 'react';
  * Frame drawover
  *
  * <Draw width="720" height="480" readonly={boolean}
- *       scale="1" rotate="0" translate={x: 0, y: 0} />
+ *       scale="1" rotate="0" translate={x: 0, y: 0}
+ *       source={ArrayBuffer} />
  *
  * Includes basic draw tools:
  *  - brush size
@@ -84,6 +85,12 @@ class Draw extends React.Component {
         if (!this.props.readonly) {
             this.setPen(this.penColors[0]);
             this.temp.current.addEventListener('contextmenu', this.onContextMenu);
+        }
+
+        // If there was a preloaded serialized form of this
+        // Draw to load from, render it on mount
+        if (this.props.source) {
+            this.deserialize(this.props.source);
         }
     }
 
@@ -797,7 +804,12 @@ class Draw extends React.Component {
         const tempCtx = this.tempContext;
 
         // Apply transformations to all three matrices
-        this.matrix = this.matrix.setTransform(1, 0, 0, 1, 0, 0);
+        this.matrix.a = 1;
+        this.matrix.b = 0;
+        this.matrix.c = 0;
+        this.matrix.d = 1;
+        this.matrix.e = 0;
+        this.matrix.f = 0;
         this.matrix = this.matrix.translate(translate.x, translate.y);
         this.matrix = this.matrix.scale(scale);
         this.matrix = this.matrix.rotate(rotate * 180 / Math.PI);
@@ -898,7 +910,7 @@ class Draw extends React.Component {
         // persistent canvas. The temp canvas and all its event handlers will NOT
         // be rendered if this canvas is in readonly mode.
         return (
-            <div className="draw">
+            <div className="draw" style={{ opacity: this.props.opacity }}>
                 {!this.props.readonly && 
                     <canvas ref={this.temp} className="draw-temp" tabIndex="0"
                         width={this.props.width} height={this.props.height}
@@ -924,6 +936,8 @@ class Draw extends React.Component {
 
 Draw.defaultProps = {
     readonly: false,
+    source: null,
+    opacity: 1,
 
     width: 720,
     height: 480,

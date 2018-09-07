@@ -431,6 +431,113 @@ class App extends React.Component {
         // and reload local draw frames (and frame caches?)
     }
 
+    /**
+     * Get the previous frame that has a Draw cached prior to `frame`
+     *
+     * @param {Number} frame
+     *
+     * @return {Number|false}
+     */
+    getPreviousDrawFrame(frame) {
+        const sframe = frame.toString();
+        let frames = Object.keys(this.drawCache);
+
+        // This assumes `frames` is sorted
+        let index = frames.indexOf(sframe) - 1;
+
+        if (index >= 0) {
+            return parseInt(frames[index], 10);
+        }
+
+        // Input frame was the first one, nothing prior
+        return false;
+    }
+
+    /**
+     * Get the next frame that has a Draw cached after `frame`
+     *
+     * @param {Number} frame
+     *
+     * @return {Number|false}
+     */
+    getNextDrawFrame(frame) {
+        const sframe = frame.toString();
+        let frames = Object.keys(this.drawCache);
+
+        // This assumes `frames` is sorted
+        let index = frames.indexOf(sframe) + 1;
+
+        if (index < frames.length) {
+            return parseInt(frames[index], 10);
+        }
+
+        // Input frame was the last one
+        return false;
+    }
+
+    /**
+     * Return a set of <Draw> components
+     *
+     * This will return an active Draw component with event
+     * hooks to all of our interactivity with the current frame,
+     * as well as other readonly draw frames for ghosting / 
+     * onion skinning our previous and next frames. 
+     */
+    renderDrawovers() {
+        const ghostCount = 3; // TODO: Props or state
+        const opacityScale = 0.25;         
+        const components = [];
+        
+        let i;
+        let drawFrame;
+        
+        if (this.video.current) {
+            // Draw previous frames with draw content,
+            // decreasing opacity the further we go
+            drawFrame = this.video.current.frame;
+            for (i = 1; i <= ghostCount; i++) {
+                drawFrame = this.getPreviousDrawFrame(drawFrame);
+                if (drawFrame !== false) {
+                    components.push(
+                        <Draw source={this.drawCache[drawFrame]}
+                            width="720" height="480"
+                            readonly={true} 
+                            opacity={1 - opacityScale * i} 
+                        />
+                    );    
+                }
+            }
+        }
+
+        // Draw the interactive version
+        components.push(
+            <Draw ref={this.draw}
+                width="720" height="480"
+                onStart={this.onDrawStart}
+                onClear={this.onDrawClear}
+            />
+        );
+
+        if (this.video.current) {
+            // Draw future frames
+            drawFrame = this.video.current.frame;
+            for (i = 1; i <= ghostCount; i++) {
+                drawFrame = this.getNextDrawFrame(drawFrame);
+                if (drawFrame !== false) {
+                    components.push(
+                        <Draw source={this.drawCache[drawFrame]}
+                            width="720" height="480"
+                            readonly={true} 
+                            opacity={1 - opacityScale * i} 
+                        />
+                    );    
+                }
+            }
+        }
+
+        return components;
+    }
+
     render() {
         return (
             <div className="app">
@@ -444,11 +551,7 @@ class App extends React.Component {
                             source="/timecode-2998fps.mp4"
                         />
 
-                        <Draw ref={this.draw}
-                            width="720" height="480"
-                            onStart={this.onDrawStart}
-                            onClear={this.onDrawClear}
-                        />
+                        {this.renderDrawovers()}
                     </Transform>
                 </Dropzone>
 
