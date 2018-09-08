@@ -45,6 +45,8 @@ class Draw extends React.Component {
 
             // Where we are in the undo stack
             historyIndex: 0,
+
+            empty: true
         };
 
         // These are kept out of state since they're localized
