@@ -93,7 +93,7 @@ class WorkerPool extends React.Component {
      */
     onWorkerMessage(worker, event) {
         const message = event.data;
-        console.log('[WorkerPool] Message', worker, message);
+        log.info('Web Worker Message', worker, message);
 
         // TODO: Less of a switch?
         switch (message.type) {
@@ -110,7 +110,8 @@ class WorkerPool extends React.Component {
                 this.onWorkerFrames(worker, message);
                 break;
             default:
-                console.error('Unknown message from worker', worker, message);
+                log.error('Unknown Web Worker Message', worker, message);
+                break;
         }
     }
 
@@ -120,8 +121,7 @@ class WorkerPool extends React.Component {
      * @param {Worker} worker
      */
     onWorkerError(worker) {
-        console.error(arguments);
-        alert('Error that we do not handle yet!');
+        log.error('Web Worker Error', arguments);
     }
 
     /**
@@ -228,10 +228,10 @@ class WorkerPool extends React.Component {
         const iframe = parseInt(frame, 10);
         const idle = this.getIdleWorkers();
 
-        console.log('Available workers', idle);
+        log.info('Available workers', idle);
 
         if (idle.length < 2) {
-            console.warn('Needs two idle workers, and no queue process yet. Quitting');
+            log.warn('Needs two idle workers, and no queue process yet. Quitting');
             // TODO: Queue work
             return;
         }

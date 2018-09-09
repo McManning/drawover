@@ -10,15 +10,15 @@ class Logger {
     }
 
     info() {
-        this.debug('%c info: ', 'background-color: #66c2cd; color: #ffffff', ...arguments);
+        this.debug('%c info ', 'background-color: #66c2cd; color: #ffffff', ...arguments);
     }
 
     warn() {
-        this.debug('%c warning: ', 'background-color: #dbaa79; color: #ffffff', ...arguments);
+        this.debug('%c warning ', 'background-color: #dbaa79; color: #ffffff', ...arguments);
     }
 
     error() {
-        this.debug('%c error: ', 'background-color: #e88388; color: #ffffff', ...arguments);
+        this.debug('%c error ', 'background-color: #e88388; color: #ffffff', ...arguments);
     }
 }
 
