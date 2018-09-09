@@ -1,6 +1,9 @@
 
 import React from 'react';
 
+import Logger from './Log';
+const log = new Logger('Draw');
+
 /**
  * Frame drawover
  *
@@ -67,6 +70,10 @@ class Draw extends React.Component {
         this.onMouseMove = this.onMouseMove.bind(this);
         this.onMouseUp = this.onMouseUp.bind(this);
         this.onMouseDown = this.onMouseDown.bind(this);
+        this.onTouchStart = this.onTouchStart.bind(this);
+        this.onTouchEnd = this.onTouchEnd.bind(this);
+        this.onTouchMove = this.onTouchMove.bind(this);
+        this.onTouchCancel = this.onTouchCancel.bind(this);
         this.onKeyDown = this.onKeyDown.bind(this);
         this.onChangeLineWidth = this.onChangeLineWidth.bind(this);
         this.onClear = this.onClear.bind(this);
@@ -76,6 +83,7 @@ class Draw extends React.Component {
     }
 
     componentDidMount() {
+        log.info('Call componentDidMount');
         // Set initial canvas transformation from props
         this.transform(
             this.props.translate,
@@ -101,6 +109,8 @@ class Draw extends React.Component {
      * Watch for component state updates to update associated canvas elements
      */
     componentDidUpdate(prevProps, prevState) {
+        log.info('Call componentDidUpdate');
+
         // On tool change or line width change, update our custom cursor to match
         if (prevState.tool !== this.state.tool || 
             prevState.lineWidth !== this.state.lineWidth
@@ -248,12 +258,77 @@ class Draw extends React.Component {
     }
 
     /**
+     * Finger(s) down for touch input
+     *
+     * @param {SyntheticEvent} e
+     */
+    onTouchStart(e) {
+        log.info('Touch Start', e);
+        const touches = e.changedTouches;
+
+        // If we're not tracking touch yet, track first
+        if (!this.touchIdentifier) {
+            this.touchIdentifier = touches[0].identifier;
+            
+            this.dragging = true;
+            this.trackTouch(touches[0]);
+            this.draw();
+        }
+
+        // Everything else - we ignore. Single touch only
+    }
+
+    /**
+     * Finger lifts from touch input
+     *
+     * @param {SyntheticEvent} e
+     */
+    onTouchEnd(e) {
+        log.info('Touch End', e);
+        const touches = e.changedTouches;
+
+        // If our tracked touch was lifted, end the line
+        for (let i = 0; i < touches.length; i++) {
+            if (touches[i].identifier === this.touchIdentifier) {
+                this.touchIdentifier = null;
+                this.dragging = false;
+                this.endCurrentLine();
+            }
+        }
+    }
+
+    /**
+     * Finger(s) leave the touch region
+     *
+     * @param {SyntheticEvent} e
+     */
+    onTouchCancel(e) {
+        log.info('Touch Cancel', e);
+        this.onTouchEnd(e);
+    }
+
+    /**
+     * Keyboard touch move event - draw more lines
+     *
+     * @param {SyntheticEvent} e
+     */
+    onTouchMove(e) {
+        const touches = e.changedTouches;
+
+        for (let i = 0; i < touches.length; i++) {
+            if (touches[i].identifier === this.touchIdentifier) {
+                this.trackTouch(touches[i]);
+                this.draw();
+            }
+        }
+    }
+
+    /**
      * Capture and respond to undo/redo events (ctrl+z/y)
      * 
      * @param {SyntheticEvent} e
      */
     onKeyDown(e) {
-        console.log(e.keyCode, e.ctrlKey);
         if (e.keyCode === 90 && e.ctrlKey) { // ctrl+z or cmd+z
             this.undo();
         } else if (e.keyCode === 89 && e.ctrlKey) { // ctrl+y or cmd+shift+z
@@ -294,6 +369,16 @@ class Draw extends React.Component {
         const point = this.transformedPoint(
             e.nativeEvent.offsetX,
             e.nativeEvent.offsetY
+        );
+
+        this.mouseX = point.x;
+        this.mouseY = point.y;
+    }
+
+    trackTouch(touch) {
+        const point = this.transformedPoint(
+            touch.pageX - touch.target.offsetLeft,
+            touch.pageY - touch.target.offsetTop
         );
 
         this.mouseX = point.x;
@@ -670,11 +755,6 @@ class Draw extends React.Component {
             }
         }
 
-        // quick deserialization test
-        // let desc = this.deserialize(new Int16Array(buffer).buffer);
-        // console.log(this.state.history);
-        // console.log(desc);
-
         // TODO: Some sort of compression?
         return new Int16Array(buffer).buffer;
     }
@@ -934,6 +1014,7 @@ class Draw extends React.Component {
     }
 
     render() {
+        log.info('Call render');
         // Temp canvas is rendered directly on top of the main canvas so that
         // it gets input events and drawn lines are copied down to the underlying
         // persistent canvas. The temp canvas and all its event handlers will NOT
@@ -947,6 +1028,10 @@ class Draw extends React.Component {
                         onMouseDown={this.onMouseDown}
                         onMouseUp={this.onMouseUp}
                         onMouseLeave={this.onMouseUp}
+                        onTouchStart={this.onTouchStart}
+                        onTouchEnd={this.onTouchEnd}
+                        onTouchMove={this.onTouchMove}
+                        onTouchCancel={this.onTouchCancel}
                         onKeyDown={this.onKeyDown}
                         style={{
                             cursor: this.state.cursor
