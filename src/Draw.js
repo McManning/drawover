@@ -6,7 +6,8 @@ import React from 'react';
  *
  * <Draw width="720" height="480" readonly={boolean}
  *       scale="1" rotate="0" translate={x: 0, y: 0}
- *       source={ArrayBuffer} />
+ *       source={ArrayBuffer}
+ *       onDraw={callable} onClear={callable} />
  *
  * Includes basic draw tools:
  *  - brush size
@@ -126,16 +127,6 @@ class Draw extends React.Component {
                 empty: this.isEmpty()
             });
         }
-
-        // If we went from an empty canvas to non-empty, notify `onStart`
-        if (prevState.empty && !this.state.empty && this.props.onStart) {
-            this.props.onStart();
-        }
-
-        // Going from non-empty to empty, notify `onClear`
-        if (!prevState.empty && this.state.empty && this.props.onClear) {
-            this.props.onClear();
-        }
     }
 
     /**
@@ -184,6 +175,11 @@ class Draw extends React.Component {
         // Reset everything
         this.clearTemp();
         this.points = [];
+
+        // Fire the onDraw event listener, if present
+        if (this.props.onDraw) {
+            this.props.onDraw();
+        }
     }
 
     /**
@@ -253,6 +249,8 @@ class Draw extends React.Component {
 
     /**
      * Capture and respond to undo/redo events (ctrl+z/y)
+     * 
+     * @param {SyntheticEvent} e
      */
     onKeyDown(e) {
         console.log(e.keyCode, e.ctrlKey);
@@ -269,6 +267,8 @@ class Draw extends React.Component {
 
     /**
      * Override the default context menu with a tool menu
+     *
+     * @param {SyntheticEvent} e
      */
     onContextMenu(e) {
         e.preventDefault();
@@ -542,6 +542,16 @@ class Draw extends React.Component {
 
         this.setState({ historyIndex });
         this.redraw(historyIndex);
+
+        // if we `undo` to a clear event or an empty canvas, fire onClear
+        if (historyIndex < 1 || this.state.history[historyIndex].tool === Draw.ERASE_TOOL) {
+            if (this.props.onClear) {
+                this.props.onClear();
+            }
+        } else if (this.props.onDraw) {
+            // Otherwise - we undo some pen event, consider it a draw.
+            this.props.onDraw();
+        }
     }
 
     /**
@@ -556,6 +566,16 @@ class Draw extends React.Component {
 
         this.setState({ historyIndex });
         this.redraw(historyIndex);
+
+        // If we redo a 'clear' event, fire onClear
+        if (this.state.history[historyIndex].tool === Draw.ERASE_TOOL) {
+            if (this.props.onClear) {
+                this.props.onClear();
+            }
+        } else if (this.props.onDraw) {
+            // redoed to some pen event, fire a draw
+            this.props.onDraw();
+        }
     }
 
     /**
@@ -719,6 +739,11 @@ class Draw extends React.Component {
         this.setState({
             toolsVisible: false
         });
+
+        // Fire off the `onClear` listener, if present
+        if (this.props.onClear) {
+            this.props.onClear();
+        }
     }
 
     /**
@@ -953,7 +978,7 @@ Draw.defaultProps = {
     scale: 1,
     rotate: 0,
 
-    onStart: null,
+    onDraw: null,
     onClear: null
 };
 
