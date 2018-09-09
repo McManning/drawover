@@ -447,7 +447,7 @@ class App extends React.Component {
 
         let adjacent = this.getPreviousDrawFrame(frame);
         for (i = 0; i < this.props.ghostLayers; i++) {
-            if (adjacent) {
+            if (adjacent !== false) {
                 this.refs['ghostBack' + i].deserialize(this.drawCache[adjacent]);
                 adjacent = this.getPreviousDrawFrame(adjacent);    
             } else {
