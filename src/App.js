@@ -75,7 +75,7 @@ class App extends React.Component {
         this.onPlaybackSkip = this.onPlaybackSkip.bind(this);
 
         // Events for <Draw>
-        this.onDrawStart = this.onDrawStart.bind(this);
+        this.onDrawDraw = this.onDrawDraw.bind(this);
         this.onDrawClear = this.onDrawClear.bind(this);
 
         // Events for <WorkerPool>
@@ -108,9 +108,9 @@ class App extends React.Component {
 
     componentDidUpdate(prevProps, prevState) {
         // On Video frame change - change Draw content to match
-        if (prevState.frame !== this.state.frame) {
-            this.changeDrawover(prevState.frame, this.state.frame);
-        }
+        // if (prevState.frame !== this.state.frame) {
+        //     this.changeDrawover(prevState.frame, this.state.frame);
+        // }
     }
 
     /**
@@ -146,11 +146,12 @@ class App extends React.Component {
             return;
         }
 
-        this.setState({
-            frame: this.video.current.frame
-        });
+        if (this.frame !== frame) {
+            this.changeDrawover(this.frame, frame);
+            this.time.current.setFrame(frame);
 
-        this.time.current.setFrame(frame);
+            this.frame = frame;    
+        }
     }
 
     /**
@@ -170,10 +171,6 @@ class App extends React.Component {
      * This will pause video playback and jump it to the desired frame
      */
     onPickFrame(frame) {
-        // this.setState({
-        //     frame: frame
-        // });
-
         this.video.current.pause();
         this.video.current.frame = frame;
 
@@ -189,7 +186,12 @@ class App extends React.Component {
         //     this.state.fps * this.props.cacheSeekAhead
         // );
 
-        this.workers.current.extractFrames(frame, 10, []);
+        if (frame !== this.frame) {
+            this.changeDrawover(this.frame, frame);
+            this.frame = frame;
+
+            // TODO: Render cached frame, if present
+        }
     }
 
     /**
@@ -265,25 +267,31 @@ class App extends React.Component {
     }
 
     /**
-     * Draw layer had a first edit made.
-     *
-     * This can also fire if the draw layer is cleared
-     * and then started again (or undo + redo)
+     * Draw layer had a new brush update added
      */
-    onDrawStart() {
+    onDrawDraw() {
         const frame = this.video.current.frame;
-        log.info('Draw Start', frame);
+        log.info('Draw Update', frame);
 
+        // Placeholder the drawCache - we won't serialize until
+        // we swap off of this frame.
+        this.drawCache[frame] = null;
+
+        // Add a key to TimeSlider immediately to let the 
+        // user know that their line created a new key frame
         this.time.current.setKey(frame, 'draw-frame');
     }
 
     /**
      * Draw layer is cleared of content, either by
-     * erasure, clear button, or history undos
+     * a clear button, or history undo
      */
     onDrawClear() {
         const frame = this.video.current.frame;
         log.info('Draw Clear', frame);
+
+        // Remove the empty frame from our cache
+        delete this.drawCache[frame];
 
         // Reset to prior key color
         // if (this.videoCache.current.isCached(frame)) {
@@ -305,14 +313,17 @@ class App extends React.Component {
      * @param {Number} frame to display new Draw content
      */
     changeDrawover(prevFrame, frame) {
-        // If this is a newly added frame, add it as a keyframe to the time slider
+        // If there's content, key it and cache the Draw content
         if (!this.draw.current.isEmpty()) {
             this.time.current.setKey(prevFrame, 'draw-frame');
-
-            // Store current Draw content to the cache
             this.drawCache[prevFrame] = this.draw.current.serialize();
 
             // TODO: Run the video caching around this key
+        } else {
+            // Canvas is empty - make sure we didn't still have anything
+            // cached or keyed to indicate that there is draw content.
+            delete this.drawCache[prevFrame];
+            this.time.current.deleteKey(prevFrame);
         }
 
         this.draw.current.reset();
@@ -322,7 +333,8 @@ class App extends React.Component {
             this.draw.current.deserialize(this.drawCache[frame]);
         }
 
-        // TODO: Ghosting
+        // Update ghost <Draw> components both forward and back from the current frame
+        this.updateGhosting();
     }
 
     /**
@@ -385,18 +397,22 @@ class App extends React.Component {
      * @return {Number|false}
      */
     getPreviousDrawFrame(frame) {
-        const sframe = frame.toString();
         let frames = Object.keys(this.drawCache);
-
-        // This assumes `frames` is sorted
-        let index = frames.indexOf(sframe) - 1;
-
-        if (index >= 0) {
-            return parseInt(frames[index], 10);
+        let i;
+        
+        for (i = frames.length - 1; i >= 0; i--) {
+            if (frames[i] < frame) {
+                break;
+            }
         }
 
-        // Input frame was the first one, nothing prior
-        return false;
+        // If we went before the list start, no frames match
+        if (i < 0) {
+            return false;
+        }
+
+        // Return the frame we broke on
+        return parseInt(frames[i], 10);
     }
 
     /**
@@ -407,18 +423,43 @@ class App extends React.Component {
      * @return {Number|false}
      */
     getNextDrawFrame(frame) {
-        const sframe = frame.toString();
         let frames = Object.keys(this.drawCache);
-
-        // This assumes `frames` is sorted
-        let index = frames.indexOf(sframe) + 1;
-
-        if (index < frames.length) {
-            return parseInt(frames[index], 10);
+        let i;
+        
+        for (i = 0; i < frames.length; i++) {
+            if (frames[i] > frame) {
+                break;
+            }
         }
 
-        // Input frame was the last one
-        return false;
+        // If i is list end, no eligible frames after `frame`
+        if (i === frames.length) {
+            return false;
+        }
+
+        // Return the frame we broke on
+        return parseInt(frames[i], 10);
+    }
+
+    updateGhosting() {
+        const frame = this.video.current.frame;
+        let i;
+
+        let adjacent = this.getPreviousDrawFrame(frame);
+        for (i = 0; i < this.props.ghostLayers; i++) {
+            if (adjacent) {
+                this.refs['ghostBack' + i].deserialize(this.drawCache[adjacent]);
+                adjacent = this.getPreviousDrawFrame(adjacent);    
+            } else {
+                this.refs['ghostBack' + i].clear();
+            }
+        }
+
+        // adjacent = this.getNextDrawFrame(frame);
+        // for (i = 0; i < this.props.ghostLayers && adjacent !== false; i++) {
+        //     this.refs['ghostForward' + i].deserialize(this.drawCache[adjacent]);
+        //     adjacent = this.getNextDrawFrame(adjacent);
+        // }
     }
 
     /**
@@ -430,56 +471,39 @@ class App extends React.Component {
      * onion skinning our previous and next frames. 
      */
     renderDrawovers() {
-        const ghostCount = 3; // TODO: Props or state
         const opacityScale = 0.25;         
         const components = [];
-        
-        let i;
-        let drawFrame;
-        
-        if (this.video.current) {
-            // Draw previous frames with draw content,
-            // decreasing opacity the further we go
-            drawFrame = this.video.current.frame;
-            for (i = 1; i <= ghostCount; i++) {
-                drawFrame = this.getPreviousDrawFrame(drawFrame);
-                if (drawFrame !== false) {
-                    components.push(
-                        <Draw source={this.drawCache[drawFrame]}
-                            width="720" height="480"
-                            readonly={true} 
-                            opacity={1 - opacityScale * i} 
-                        />
-                    );    
-                }
-            }
-        }
+        let opacity;
 
-        // Draw the interactive version
+        // We add the lowest (furthest) layers first 
+        for (let i = this.props.ghostLayers - 1; i >= 0; i--) {
+            opacity = 1 - (i + 1) * this.props.ghostOpacityScale;
+            
+            components.push(
+                <Draw key={'ghostBack' + i} 
+                    ref={'ghostBack' + i}
+                    width="720" height="480"
+                    readonly={true} 
+                    opacity={opacity} 
+                />
+            );
+
+            // components.push(
+            //     <Draw ref={'ghostForward' + i}
+            //         width="720" height="480"
+            //         readonly={true} 
+            //         opacity={opacity} 
+            //     />
+            // );
+        }
+        
         components.push(
-            <Draw ref={this.draw}
+            <Draw key={'main'} ref={this.draw}
                 width="720" height="480"
-                onStart={this.onDrawStart}
+                onDraw={this.onDrawDraw}
                 onClear={this.onDrawClear}
             />
         );
-
-        if (this.video.current) {
-            // Draw future frames
-            drawFrame = this.video.current.frame;
-            for (i = 1; i <= ghostCount; i++) {
-                drawFrame = this.getNextDrawFrame(drawFrame);
-                if (drawFrame !== false) {
-                    components.push(
-                        <Draw source={this.drawCache[drawFrame]}
-                            width="720" height="480"
-                            readonly={true} 
-                            opacity={1 - opacityScale * i} 
-                        />
-                    );    
-                }
-            }
-        }
 
         return components;
     }
@@ -539,7 +563,14 @@ App.defaultProps = {
 
     // How many frames ahead from a cached frame
     // to cache alongside it (in seconds)
-    cacheSeekAhead: 2
+    cacheSeekAhead: 2,
+
+    // How many drawn frame forward/behind the current
+    // frame should be rendered at once
+    ghostLayers: 3,
+
+    // How much to decrement opacity per ghost layer
+    ghostOpacityScale: 0.3
 };
 
 export default App;
