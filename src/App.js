@@ -9,7 +9,6 @@ import Transform from './Transform';
 import Dropzone from './Dropzone';
 import Playback from './Playback';
 
-import VideoCache from './VideoCache';
 import WorkerPool from './WorkerPool';
 
 import Logger from './Log';
@@ -150,7 +149,7 @@ class App extends React.Component {
             this.changeDrawover(this.frame, frame);
             this.time.current.setFrame(frame);
 
-            this.frame = frame;    
+            this.frame = frame;
         }
     }
 
@@ -277,7 +276,7 @@ class App extends React.Component {
         // we swap off of this frame.
         this.drawCache[frame] = null;
 
-        // Add a key to TimeSlider immediately to let the 
+        // Add a key to TimeSlider immediately to let the
         // user know that their line created a new key frame
         this.time.current.setKey(frame, 'draw-frame');
     }
@@ -399,7 +398,7 @@ class App extends React.Component {
     getPreviousDrawFrame(frame) {
         let frames = Object.keys(this.drawCache);
         let i;
-        
+
         for (i = frames.length - 1; i >= 0; i--) {
             if (frames[i] < frame) {
                 break;
@@ -425,7 +424,7 @@ class App extends React.Component {
     getNextDrawFrame(frame) {
         let frames = Object.keys(this.drawCache);
         let i;
-        
+
         for (i = 0; i < frames.length; i++) {
             if (frames[i] > frame) {
                 break;
@@ -449,7 +448,7 @@ class App extends React.Component {
         for (i = 0; i < this.props.ghostLayers; i++) {
             if (adjacent !== false) {
                 this.refs['ghostBack' + i].deserialize(this.drawCache[adjacent]);
-                adjacent = this.getPreviousDrawFrame(adjacent);    
+                adjacent = this.getPreviousDrawFrame(adjacent);
             } else {
                 this.refs['ghostBack' + i].clear();
             }
@@ -467,36 +466,35 @@ class App extends React.Component {
      *
      * This will return an active Draw component with event
      * hooks to all of our interactivity with the current frame,
-     * as well as other readonly draw frames for ghosting / 
-     * onion skinning our previous and next frames. 
+     * as well as other readonly draw frames for ghosting /
+     * onion skinning our previous and next frames.
      */
     renderDrawovers() {
-        const opacityScale = 0.25;         
         const components = [];
         let opacity;
 
-        // We add the lowest (furthest) layers first 
+        // We add the lowest (furthest) layers first
         for (let i = this.props.ghostLayers - 1; i >= 0; i--) {
             opacity = 1 - (i + 1) * this.props.ghostOpacityScale;
-            
+
             components.push(
-                <Draw key={'ghostBack' + i} 
+                <Draw key={'ghostBack' + i}
                     ref={'ghostBack' + i}
                     width="720" height="480"
-                    readonly={true} 
-                    opacity={opacity} 
+                    readonly={true}
+                    opacity={opacity}
                 />
             );
 
             // components.push(
             //     <Draw ref={'ghostForward' + i}
             //         width="720" height="480"
-            //         readonly={true} 
-            //         opacity={opacity} 
+            //         readonly={true}
+            //         opacity={opacity}
             //     />
             // );
         }
-        
+
         components.push(
             <Draw key={'main'} ref={this.draw}
                 width="720" height="480"
