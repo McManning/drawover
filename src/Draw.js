@@ -60,9 +60,7 @@ class Draw extends React.Component {
         this.mouseX = 0;
         this.mouseY = 0;
 
-        // Worker SVG & matrix for doing matrix math
-        this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        this.matrix = this.svg.createSVGMatrix();
+        this.matrix = new window.DOMMatrixReadOnly();
 
         this.canvas = React.createRef();
         this.temp = React.createRef();
@@ -91,7 +89,7 @@ class Draw extends React.Component {
             this.props.rotate
         );
 
-        // Add non-React event listener for context menu 
+        // Add non-React event listener for context menu
         // (right click) and a default pen
         if (!this.props.readonly) {
             this.setPen(this.penColors[0]);
@@ -112,7 +110,7 @@ class Draw extends React.Component {
         log.info('Call componentDidUpdate');
 
         // On tool change or line width change, update our custom cursor to match
-        if (prevState.tool !== this.state.tool || 
+        if (prevState.tool !== this.state.tool ||
             prevState.lineWidth !== this.state.lineWidth
         ) {
             this.redrawCursorSVG();
@@ -149,7 +147,7 @@ class Draw extends React.Component {
             ctx.save();
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.clearRect(0, 0, this.temp.current.width, this.temp.current.height);
-            ctx.restore();   
+            ctx.restore();
         }
     }
 
@@ -269,7 +267,7 @@ class Draw extends React.Component {
         // If we're not tracking touch yet, track first
         if (!this.touchIdentifier) {
             this.touchIdentifier = touches[0].identifier;
-            
+
             this.dragging = true;
             this.trackTouch(touches[0]);
             this.draw();
@@ -325,7 +323,7 @@ class Draw extends React.Component {
 
     /**
      * Capture and respond to undo/redo events (ctrl+z/y)
-     * 
+     *
      * @param {SyntheticEvent} e
      */
     onKeyDown(e) {
@@ -448,7 +446,7 @@ class Draw extends React.Component {
      * @param {string}          color       Hex color code
      * @param {Number}          lineWidth   Stroke size of the pen
      * @param {array}           points      Array of {x, y} pairs in canvas space
-     * @param {string}          operation   A globalCompositeOperation for the 
+     * @param {string}          operation   A globalCompositeOperation for the
      *                                      stroke (e.g. `source-over`)
      */
     pen(ctx, color, lineWidth, points, operation) {
@@ -570,7 +568,7 @@ class Draw extends React.Component {
 
     /**
      * Tools menu event handler to change state.lineWidth
-     * 
+     *
      * @param {SyntheticEvent} e
      */
     onChangeLineWidth(e) {
@@ -877,13 +875,13 @@ class Draw extends React.Component {
     }
 
     /**
-     * Get the context of the temp canvas. 
-     * 
+     * Get the context of the temp canvas.
+     *
      * This will return null if the component was rendered
      * without a temp canvas (e.g. in `readonly` mode)
      *
      * @return {CanvasContext2D|null}
-     */ 
+     */
     get tempContext() {
         if (!this.temp.current) {
             return null;
@@ -901,24 +899,19 @@ class Draw extends React.Component {
      * with other DOM components.
      *
      * Currently, transformations are done in TSR order.
-     * 
+     *
      * @param {object} translate {x, y} coordinate pair
      * @param {Number} scale Canvas scale, where 1 is no scale
-     * @param {Number} rotate Radian rotation 
+     * @param {Number} rotate Radian rotation
      */
     transform(translate, scale, rotate) {
         const canvasCtx = this.canvasContext;
         const tempCtx = this.tempContext;
 
         // Apply transformations to all three matrices
-        this.matrix.a = 1;
-        this.matrix.b = 0;
-        this.matrix.c = 0;
-        this.matrix.d = 1;
-        this.matrix.e = 0;
-        this.matrix.f = 0;
+        this.matrix = new window.DOMMatrixReadOnly();
         this.matrix = this.matrix.translate(translate.x, translate.y);
-        this.matrix = this.matrix.scale(scale);
+        this.matrix = this.matrix.scale(scale, scale);
         this.matrix = this.matrix.rotate(rotate * 180 / Math.PI);
 
         canvasCtx.setTransform(1, 0, 0, 1, 0, 0);
@@ -930,7 +923,7 @@ class Draw extends React.Component {
             tempCtx.setTransform(1, 0, 0, 1, 0, 0);
             tempCtx.translate(translate.x, translate.y);
             tempCtx.scale(scale, scale);
-            tempCtx.rotate(rotate);   
+            tempCtx.rotate(rotate);
         }
 
         this.redraw(this.state.historyIndex);
@@ -944,13 +937,8 @@ class Draw extends React.Component {
      * @param {Number} y
      */
     transformedPoint(x, y) {
-        let point = this.svg.createSVGPoint();
-        point.x = x;
-        point.y = y;
-
-        return point.matrixTransform(
-            this.matrix.inverse()
-        );
+        const point = new window.DOMPoint(x, y);
+        return point.matrixTransform(this.matrix.inverse());
     }
 
     /**
@@ -1021,7 +1009,7 @@ class Draw extends React.Component {
         // be rendered if this canvas is in readonly mode.
         return (
             <div className="draw" style={{ opacity: this.props.opacity }}>
-                {!this.props.readonly && 
+                {!this.props.readonly &&
                     <canvas ref={this.temp} className="draw-temp" tabIndex="0"
                         width={this.props.width} height={this.props.height}
                         onMouseMove={this.onMouseMove}
