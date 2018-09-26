@@ -46,9 +46,7 @@ class Transform extends React.Component {
         this.onKeyDownCapture = this.onKeyDownCapture.bind(this);
         this.onKeyUpCapture = this.onKeyUpCapture.bind(this);
 
-        // Worker SVG & matrix for doing matrix math
-        this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        this.matrix = this.svg.createSVGMatrix();
+        this.matrix = new window.DOMMatrixReadOnly();
     }
 
     /**
@@ -174,7 +172,7 @@ class Transform extends React.Component {
      */
     zoom(factor, x, y) {
         this.matrix = this.matrix.translate(x, y);
-        this.matrix = this.matrix.scale(factor);
+        this.matrix = this.matrix.scale(factor, factor);
         this.matrix = this.matrix.translate(-x, -y);
 
         // Since zooming on a point affects translation,
@@ -200,12 +198,7 @@ class Transform extends React.Component {
      * Resets this transform to the identity matrix
      */
     reset() {
-        this.matrix.a = 1;
-        this.matrix.b = 0;
-        this.matrix.c = 0;
-        this.matrix.d = 1;
-        this.matrix.e = 0;
-        this.matrix.f = 0;
+        this.matrix = new window.DOMMatrixReadOnly();
 
         this.setState({
             translate: {
@@ -224,13 +217,8 @@ class Transform extends React.Component {
      * @param {integer} y
      */
     localSpace(x, y) {
-        let point = this.svg.createSVGPoint();
-        point.x = x;
-        point.y = y;
-
-        return point.matrixTransform(
-            this.matrix.inverse()
-        );
+        const point = new window.DOMPoint(x, y);
+        return point.matrixTransform(this.matrix.inverse());
     }
 
     render() {

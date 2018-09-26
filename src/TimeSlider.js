@@ -115,6 +115,10 @@ class TimeSlider extends React.Component {
      * within noUiSlider).
      */
     updateHandleVisibility() {
+        if (!this.slider.target) {
+            return;
+        }
+
         const handle = this.slider.target.getElementsByClassName('noUi-origin');
 
         if (this.state.current >= this.state.start && this.state.current <= this.state.end) {
