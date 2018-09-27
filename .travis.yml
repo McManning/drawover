@@ -11,4 +11,7 @@ script: # dummy script
   - cd .
 deploy:
   provider: script
-  script: chmod +x ./.travis/deploy.sh && ./.travis/deploy.sh
+  script: bash .travis/deploy.sh
+  on:
+    branch: travis-tests
+
