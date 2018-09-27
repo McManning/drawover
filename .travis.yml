@@ -5,6 +5,7 @@ env:
   global:
     - DEPLOY_HOST=sybolt.com
     - DEPLOY_PORT=2222
+    - DEPLOY_PATH=build
 cache:
   directories:
     - node_modules
