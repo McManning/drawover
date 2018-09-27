@@ -5,9 +5,9 @@ env:
   global:
     - DEPLOY_HOST=sybolt.com
     - DEPLOY_PORT=2222
-# cache:
-#   directories:
-#     - node_modules
+cache:
+  directories:
+    - node_modules
 # script:
 #   - npm test
 #   - npm run build
