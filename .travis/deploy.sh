@@ -22,19 +22,24 @@ if [[ -z "${DEPLOY_HOST}" ]] ; then
     exit 1
 fi
 
-PRIVKEY="~/.ssh/travis_id_rsa"
+DEPLOY_KEY="deploy_key"
 
 ENCRYPTED_KEY_VAR="encrypted_${DEPLOY_KEY_LABEL}_key"
 ENCRYPTED_IV_VAR="encrypted_${DEPLOY_KEY_LABEL}_iv"
 ENCRYPTED_KEY=${!ENCRYPTED_KEY_VAR}
 ENCRYPTED_IV=${!ENCRYPTED_IV_VAR}
 
-echo $DEPLOY_KEY_ENC | base64 -d | openssl aes-256-cbc -K $ENCRYPTED_KEY -iv $ENCRYPTED_IV -out "$PRIVKEY" -d
+echo "Decrypting private key"
+echo $DEPLOY_KEY_ENC | base64 -d | openssl aes-256-cbc -K $ENCRYPTED_KEY -iv $ENCRYPTED_IV -out "$DEPLOY_KEY" -d
 chmod 600 "$DEPLOY_KEY"
-eval `ssh-agent -s`
 
 echo -e "Host $DEPLOY_HOST\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config
-ssh-add "$PRIVKEY"
-ssh -i "$PRIVKEY" "travis-ci@$DEPLOY_HOST:${DEPLOY_PATH:-/}" pwd
+
+echo "Booting SSH Agent"
+eval `ssh-agent -s`
+ssh-add "$DEPLOY_KEY"
+
+echo "Connecting to target host"
+ssh -i "$DEPLOY_KEY" "travis-ci@$DEPLOY_HOST:${DEPLOY_PATH:-/}" pwd
 
 # TODO: Rsync and whatnot
