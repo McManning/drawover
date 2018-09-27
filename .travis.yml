@@ -4,9 +4,9 @@ node_js:
 env:
   global:
     - DEPLOY_HOST=sybolt.com
-cache:
-  directories:
-    - node_modules
+# cache:
+#   directories:
+#     - node_modules
 script: # dummy script
   - cd .
 deploy:
