@@ -1,9 +1,14 @@
 language: node_js
 node_js:
   - "stable"
+env:
+  global:
+    - DEPLOY_HOST=sybolt.com
 cache:
   directories:
     - node_modules
 script:
   - npm test
   - npm run build
+after_success:
+  - ./.travis/deploy.sh
