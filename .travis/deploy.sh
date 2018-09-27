@@ -50,7 +50,7 @@ ssh-add "$DEPLOY_KEY"
 
 echo "Starting rsync to $DEPLOY_ROOT"
 rsync -r --delete-after --quiet -e "ssh -p $DEPLOY_PORT" \
-    $TRAVIS_BUILD_DIR/$DEPLOY_PATH "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_ROOT}"
+    $TRAVIS_BUILD_DIR/$DEPLOY_PATH "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_ROOT"
 
 echo "Dumping file list"
 ssh -p $DEPLOY_PORT "$DEPLOY_USER@$DEPLOY_HOST" find .
