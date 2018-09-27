@@ -7,7 +7,6 @@
 # Expected environment variables in .travis.yml
 # DEPLOY_HOST=sybolt.com
 # DEPLOY_PORT=22 (optional)
-# DEPLOY_PATH=/ (optional)
 
 set -e
 
@@ -33,13 +32,13 @@ echo "Decrypting private key"
 echo $DEPLOY_KEY_ENC | base64 -d | openssl aes-256-cbc -K $ENCRYPTED_KEY -iv $ENCRYPTED_IV -out "$DEPLOY_KEY" -d
 chmod 600 "$DEPLOY_KEY"
 
-echo -e "Host $DEPLOY_HOST\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config
+echo -e "Host $DEPLOY_HOST\n\tStrictHostKeyChecking no\nPasswordAuthentication no" >> ~/.ssh/config
 
 echo "Booting SSH Agent"
 eval `ssh-agent -s`
 ssh-add "$DEPLOY_KEY"
 
 echo "Connecting to target host"
-ssh -i "$DEPLOY_KEY" "travis-ci@$DEPLOY_HOST:${DEPLOY_PATH:-/}" pwd
+ssh -i "$DEPLOY_KEY" -p ${DEPLOY_PORT:-22} "travis-ci@$DEPLOY_HOST" pwd
 
 # TODO: Rsync and whatnot
