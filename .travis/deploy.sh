@@ -12,7 +12,7 @@
 set -e
 
 # Check Travis state
-if [ "$TRAVIS_BRANCH" != "master" ] || [ "$TRAVIS_SECURE_ENV_VARS" == "false" ] || [ "$TRAVIS_PULL_REQUEST" != "false" ] ; then
+if [ "$TRAVIS_SECURE_ENV_VARS" == "false" ] || [ "$TRAVIS_PULL_REQUEST" != "false" ] ; then
     echo "Skipping: Either missing secure env vars or PR that has not been merged"
     exit 0
 fi

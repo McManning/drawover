@@ -12,6 +12,7 @@ script: # dummy script
 deploy:
   provider: script
   script: bash .travis/deploy.sh
+  skip_cleanup: true # preserve build artifacts
   on:
     branch: travis-tests
 
