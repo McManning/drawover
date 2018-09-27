@@ -7,6 +7,7 @@
 # Expected environment variables in .travis.yml
 # DEPLOY_HOST=sybolt.com
 # DEPLOY_PORT=22 (optional)
+# DEPLOY_USER=travis-ci (optional)
 
 set -e
 
@@ -39,6 +40,6 @@ eval `ssh-agent -s`
 ssh-add "$DEPLOY_KEY"
 
 echo "Connecting to target host"
-ssh -i "$DEPLOY_KEY" -p ${DEPLOY_PORT:-22} "travis-ci@$DEPLOY_HOST" pwd
+ssh -p ${DEPLOY_PORT:-22} "${DEPLOY_USER:-travis-ci}@$DEPLOY_HOST" pwd
 
 # TODO: Rsync and whatnot
