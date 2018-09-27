@@ -2,7 +2,7 @@
 
 # Expected environment variables added by Travis
 # DEPLOY_KEY_LABEL=abc123
-# DEPLOY_KEY_ENV=<base64 of deploy_key.enc>
+# DEPLOY_KEY_ENC=<base64 of deploy_key.enc>
 
 # Expected environment variables in .travis.yml
 # DEPLOY_HOST=sybolt.com
