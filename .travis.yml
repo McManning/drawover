@@ -8,15 +8,13 @@ env:
 cache:
   directories:
     - node_modules
-# script:
-#   - npm test
-#   - npm run build
-script: # dummy script
-  - cd .
+script:
+  # - cd .
+  # - npm test
+  - npm run build
 deploy:
   provider: script
   script: bash .travis/deploy.sh
   skip_cleanup: true # preserve build artifacts
   on:
     branch: travis-tests
-

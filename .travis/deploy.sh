@@ -6,8 +6,9 @@
 
 # Expected environment variables in .travis.yml
 # DEPLOY_HOST=sybolt.com
-# DEPLOY_PORT=22 (optional)
-# DEPLOY_USER=travis-ci (optional)
+# DEPLOY_PORT=22            (optional)
+# DEPLOY_USER=travis-ci     (optional)
+# DEPLOY_PATH=.             (optional) - e.g. for React apps, 'build' is what we want
 
 set -e
 
@@ -23,6 +24,11 @@ if [[ -z "${DEPLOY_HOST}" ]] ; then
 fi
 
 DEPLOY_KEY="deploy_key"
+
+DEPLOY_PORT=${DEPLOY_PORT:-22}
+DEPLOY_PATH=${DEPLOY_PATH:-.}
+DEPLOY_USER=${DEPLOY_USER:-travis-ci}
+DEPLOY_ROOT="/home/$DEPLOY_PATH"
 
 ENCRYPTED_KEY_VAR="encrypted_${DEPLOY_KEY_LABEL}_key"
 ENCRYPTED_IV_VAR="encrypted_${DEPLOY_KEY_LABEL}_iv"
@@ -40,6 +46,11 @@ eval `ssh-agent -s`
 ssh-add "$DEPLOY_KEY"
 
 echo "Connecting to target host"
-ssh -p ${DEPLOY_PORT:-22} "${DEPLOY_USER:-travis-ci}@$DEPLOY_HOST" pwd
+ssh -p $DEPLOY_PORT "$DEPLOY_USER@$DEPLOY_HOST" pwd
 
-# TODO: Rsync and whatnot
+echo "Starting rsync to ..."
+rsync -r --delete-after --quiet -e "ssh -p $DEPLOY_PORT" \
+    $TRAVIS_BUILD_DIR/$DEPLOY_PATH "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_ROOT}"
+
+# Note: rsync probably not the best option since we need a zero-downtime deployment.
+# Probably do the ORIS thing and deploy to a staging area then hot swap once complete.
