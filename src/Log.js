@@ -17,7 +17,7 @@ class Logger {
         this.print('%c info ', 'background-color: #66c2cd; color: #ffffff', ...arguments);
     }
 
-    warn() {
+    warning() {
         this.print('%c warning ', 'background-color: #dbaa79; color: #ffffff', ...arguments);
     }
 
