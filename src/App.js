@@ -83,33 +83,11 @@ class App extends React.Component {
     }
 
     componentDidMount() {
-        // Setup a worker iframe for video caching
-        // this.frame = document.createElement('iframe');
-        // this.frame.onload = function () {
-        //     console.log('Frame loaded');
-        // };
-        // this.frame.srcdoc = `
-        //     <html>
-        //     <body>
-        //         <script type="text/javascript" src="iframe-worker.js"></script>
-        //         <script>console.log('Hello from iframe!');</script>
-        //     </body>
-        //     </html>
-        // `;
 
-        // // MUST get added to the DOM before it loads
-        // document.body.appendChild(this.frame);
-
-        // this.createWorkers();
-
-        this.changeVideoSource('timecode-2998fps.mp4');
     }
 
     componentDidUpdate(prevProps, prevState) {
-        // On Video frame change - change Draw content to match
-        // if (prevState.frame !== this.state.frame) {
-        //     this.changeDrawover(prevState.frame, this.state.frame);
-        // }
+
     }
 
     /**
@@ -172,18 +150,6 @@ class App extends React.Component {
     onPickFrame(frame) {
         this.video.current.pause();
         this.video.current.frame = frame;
-
-        // Cache frames forward
-        // TODO: Eventually move over to only when we're drawing frames
-        // this.videoCache.current.cache(
-        //     frame,
-        //     this.state.fps * this.props.cacheSeekAhead
-        // );
-
-        // this.frame.contentWindow.cache(
-        //     frame,
-        //     this.state.fps * this.props.cacheSeekAhead
-        // );
 
         if (frame !== this.frame) {
             this.changeDrawover(this.frame, frame);
@@ -256,16 +222,6 @@ class App extends React.Component {
     }
 
     /**
-     * Frame has been added to the VideoCache
-     */
-    onFrameCache(frame) {
-        // Push as a key on the timeline to indicate that it's been cached
-        if (!this.time.current.hasKey(frame)) {
-            this.time.current.setKey(frame, 'cached-frame');
-        }
-    }
-
-    /**
      * Draw layer had a new brush update added
      */
     onDrawDraw() {
@@ -293,11 +249,11 @@ class App extends React.Component {
         delete this.drawCache[frame];
 
         // Reset to prior key color
-        // if (this.videoCache.current.isCached(frame)) {
-        //     this.time.current.setKey(frame, 'cached-frame');
-        // } else {
+        if (this.frameCache[frame]) {
+            this.time.current.setKey(frame, 'cached-frame');
+        } else {
             this.time.current.deleteKey(frame);
-        // }
+        }
     }
 
     /**
@@ -542,10 +498,6 @@ class App extends React.Component {
                     onSpeed={this.onPlaybackSpeed}
                 />
 
-                {/* <VideoCache ref={this.videoCache}
-                    workers={this.props.cacheWorkers}
-                    onCache={this.onFrameCache} /> */}
-
                 <WorkerPool ref={this.workers}
                     onMetadata={this.onWorkerMetadata}
                     onFrames={this.onWorkerFrames} />
@@ -555,14 +507,6 @@ class App extends React.Component {
 }
 
 App.defaultProps = {
-    // How many concurrent workers should be used
-    // in the child VideoCache component.
-    cacheWorkers: 5,
-
-    // How many frames ahead from a cached frame
-    // to cache alongside it (in seconds)
-    cacheSeekAhead: 2,
-
     // How many drawn frame forward/behind the current
     // frame should be rendered at once
     ghostLayers: 3,
