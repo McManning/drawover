@@ -22,8 +22,14 @@ class WorkerPool extends React.Component {
     constructor(props) {
         super(props);
 
+        // In state for debug write
+        this.state = {
+            totalReady: 0
+        };
+
         this.workers = [];
         this.waitingToPostInfo = false;
+        this.metadata = {};
 
         log.info('hello', module);
     }
@@ -32,11 +38,19 @@ class WorkerPool extends React.Component {
         this.startWebWorkers();
     }
 
+    componentDidUpdate(prevProps) {
+        if (prevProps.workers !== this.props.workers) {
+            this.startWebWorkers();
+        }
+    }
+
     /**
-     * Spin up the desired number of Web Workers and prep them to recieve jobs
+     * Spin up web worker threads up to `props.workers` size.
+     *
+     * Note that worker count only goes up, not down.
      */
     startWebWorkers() {
-        for (let i = 0; i < this.props.workers; i++) {
+        while (this.workers.length < this.props.workers) {
             this.addWebWorker();
         }
     }
@@ -95,7 +109,6 @@ class WorkerPool extends React.Component {
         const message = event.data;
         log.info('Web Worker Message', worker, message);
 
-        // TODO: Less of a switch?
         switch (message.type) {
             case 'ready':
                 this.onWorkerReady(worker, message);
@@ -131,6 +144,18 @@ class WorkerPool extends React.Component {
      */
     onWorkerReady(worker) {
         worker.ready = true;
+
+        // Count the number of ready workers at this point
+        let count = 0;
+        this.workers.forEach((worker) => {
+            if (worker.ready) {
+                count++;
+            }
+        });
+
+        this.setState({
+            totalReady: count
+        });
     }
 
     /**
@@ -157,6 +182,8 @@ class WorkerPool extends React.Component {
      * @param {object} message
      */
     onWorkerInfo(worker, message) {
+        this.metadata = message.metadata;
+
         if (this.props.onMetadata) {
             this.props.onMetadata(message.metadata);
         }
@@ -170,7 +197,11 @@ class WorkerPool extends React.Component {
      */
     onWorkerFrames(worker, message) {
         if (this.props.onFrames) {
-            this.props.onFrames(message.frames);
+            this.props.onFrames(
+                message.start,
+                message.end,
+                message.frames
+            );
         }
     }
 
@@ -231,7 +262,7 @@ class WorkerPool extends React.Component {
         log.info('Available workers', idle);
 
         if (idle.length < 2) {
-            log.warn('Needs two idle workers, and no queue process yet. Quitting');
+            log.warning('Needs two idle workers, and no queue process yet. Quitting');
             // TODO: Queue work
             return;
         }
@@ -244,26 +275,32 @@ class WorkerPool extends React.Component {
         // This way - a 2 core CPU is sufficient (assuming the browser distributes
         // worker threads across cores)
 
+
         // Both workers will ignore skip for now, but it'd make sense as a minor optimization
         // if skip was checked to see if we can just skip a worker altogether (e.g. everything
         // before `frame` was cached, so don't run idle[0])
+
+        // in general - check if frames are already processed. Because if so - skip work.
+
         idle[0].postMessage({
             type: 'job',
+            metadata: this.metadata,
             start: Math.floor(iframe - distance),
-            total: Math.floor(iframe)
+            end: Math.floor(iframe)
         });
 
         idle[1].postMessage({
             type: 'job',
+            metadata: this.metadata,
             start: Math.floor(iframe),
-            total: Math.floor(iframe + distance)
+            end: Math.floor(iframe + distance)
         });
     }
 
     render() {
         return (
             <div className="worker-pool">
-                Running {this.props.workers} Worker Threads
+                Running ({this.state.totalReady} / {this.props.workers}) Worker Threads
             </div>
         );
     }
