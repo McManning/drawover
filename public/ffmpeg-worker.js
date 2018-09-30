@@ -177,7 +177,7 @@ function reportInfo() {
  * @return {object}
  */
 function extractInfo() {
-    const RE1 = /\s(?<width>\d+)x(?<height>\d+)\s.*,\s(?<fps>[0-9\.]+)\sfps.*\s(?<tbr>[0-9\.]+)\stbr/gm;
+    const RE1 = /, (?<width>\d+)x(?<height>\d+).*, (?<fps>[0-9\.]+)\sfps.*, (?<tbr>[0-9\.]+) tbr/gm;
     let metadata = {};
 
     // `stderr` is used because it'll end up in that stream since reportInfo
