@@ -44,15 +44,23 @@
         stderr: [string]
     }
 
-    -> Start a frame grab job for [start, start + total) frames:
+    -> Start a frame grab job for [start, end) frames:
     {
         type: 'job',
+        metadata: {
+            width: Number,
+            height: Number,
+            fps: Number,
+            tbr: Number
+        },
         start: Number,
-        total: Number
+        end: Number
     }
     <- Frame data for [start, end) frames:
     {
         type: 'frames',
+        start: Number,
+        end: Number
         frames: [Blob],
         stdout: [string],
         stderr: [string]
@@ -91,6 +99,9 @@ function loadSourceFile(filename, arrayBuffer) {
         data: new Uint8Array(arrayBuffer)
     }];
 
+    stdout = [];
+    stderr = [];
+
     // TODO: Cancel current ffmpeg job (if possible?)
 
     postMessage({
@@ -99,29 +110,39 @@ function loadSourceFile(filename, arrayBuffer) {
 }
 
 /**
- * Start a frame processing job for the range [startFrame, startFrame + totalFrames)
+ * Start a frame processing job for the range [start, end)
  *
  * Once the job has been completed, this will fire a `frames` event
  * back to listeners with the parsed out frame blobs.
  *
- * @param {Number} startFrame
- * @param {Number} totalFrames
+ * @param {Number} metadata information from extractInfo
+ *                          (possibly ran by another worker)
+ * @param {Number} start    First frame to extract
+ * @param {Number} end      Last frame to extract
  */
-function startJob(startFrame, totalFrames) {
+function startJob(metadata, start, end) {
     var args = [
-        '-ss', startFrame / 29.98, // '00:00:00.000', Second to start at (decimals for frame %)
+        '-ss', start / metadata.fps, // '00:00:00.000', Second to start at (decimals for frame %)
         '-i', files[0].name,
         // '-vframes', '10',
         // '-vf', 'scale=120:-1',
         // '-f', 'image2',
-        '-frames:v', Math.round(totalFrames), // Math.floor(TOTAL_SECONDS * 29.98), // '100',
+        '-frames:v', Math.round(end - start), // Math.floor(TOTAL_SECONDS * 29.98), // '100',
         '-f', 'image2',
         '-an', '%d.jpeg'
     ];
 
-    console.log(args, files);
 
-    // TODO! Args!!!
+    // DESTROYS RAM. Not a viable option.
+
+    // var args = [
+    //     '-ss', start / metadata.fps,
+    //     '-i', files[0].name,
+    //     '-frames:v', Math.round(end - start),
+    //     '-f', 'image2',
+    //     '-pix_fmt', 'rgba',
+    //     '-an', '%d.raw'
+    // ];
 
     var result = ffmpeg_run({
         print: printStdout,
@@ -131,11 +152,25 @@ function startJob(startFrame, totalFrames) {
         files: files
     });
 
-    // TODO: Post-processing of results to map blobs to frame #'s
+    // Convert frames to ImageData objects before handing off to the main thread
+    var frames = [];
+    for (var i = 0; i < result.length; i++) {
+        // console.log(result[i].data.length, metadata.width, metadata.height);
+        // frames.push(new ImageData(
+        //     new Uint8ClampedArray(result[i].data),
+        //     metadata.width,
+        //     metadata.height
+        // ));
+
+        const blob = new Blob([result[i].data], {type: 'image/jpeg'});
+        frames.push(URL.createObjectURL(blob));
+    }
 
     postMessage({
         type: 'frames',
-        frames: result,
+        start: start,
+        end: end,
+        frames: frames,
         stdout: stdout,
         stderr: stderr
     });
@@ -160,8 +195,6 @@ function reportInfo() {
         arguments: args,
         files: files
     });
-
-    // TODO: Extract useful information from stdout
 
     postMessage({
         type: 'info',
@@ -206,7 +239,7 @@ onmessage = function (event) {
     if (message.type === 'load') {
         loadSourceFile(message.filename, message.data);
     } else if (message.type === 'job') {
-        startJob(message.start, message.total);
+        startJob(message.metadata, message.start, message.end);
     } else if (message.type === 'info') {
         reportInfo();
     } else {
