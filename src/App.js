@@ -20,9 +20,9 @@ class App extends React.Component {
 
         this.state = {
             fps: 29.98,
-
-            ready: false,
             playing: false,
+
+            loading: false,
 
             // Video playback speed
             speed: 1,
@@ -38,25 +38,29 @@ class App extends React.Component {
 
             // Video data
             videoFilename: null,
-            videoSourceUrl: null
+            videoSourceUrl: null,
+
+            // WorkerPool settings
+            totalWebWorkers: 2
         };
 
         // Cache of serialized Draw content per-frame.
         // Eventually, this will be some localStorage object.
         this.drawCache = {};
 
+        // Cache of frame data from ffmpeg, mapped to frame IDs
+        this.frameCache = {};
+
         this.video = React.createRef();
         this.workers = React.createRef();
         this.time = React.createRef();
         this.range = React.createRef();
         this.draw = React.createRef();
+        this.cacheImage = React.createRef();
 
         // Events for <Video>
         this.onVideoReady = this.onVideoReady.bind(this);
         this.onFrame = this.onFrame.bind(this);
-
-        // Events for <VideoCache>
-        this.onFrameCache = this.onFrameCache.bind(this);
 
         // Events for <RangeSlider>
         this.onPickRange = this.onPickRange.bind(this);
@@ -80,6 +84,8 @@ class App extends React.Component {
         // Events for <WorkerPool>
         this.onWorkerMetadata = this.onWorkerMetadata.bind(this);
         this.onWorkerFrames = this.onWorkerFrames.bind(this);
+
+        this.onAddWebWorker = this.onAddWebWorker.bind(this);
     }
 
     componentDidMount() {
@@ -97,7 +103,6 @@ class App extends React.Component {
      */
     onVideoReady() {
         this.setState({
-            ready: true,
             min: 0,
             max: this.video.current.totalFrames,
             start: 0,
@@ -105,12 +110,49 @@ class App extends React.Component {
         });
     }
 
-    onWorkerFrames(frames) {
-        log.info(frames);
+    /**
+     * Callback for when WorkerPool extracts a range of frames
+     *
+     * @param {Number} start frame
+     * @param {Number} end frame
+     * @param {array} frames Frame data
+     */
+    onWorkerFrames(start, end, frames) {
+        log.info('onWorkerFrames', start, end);
+
+        // Cache frames
+        const len = end - start;
+        for (let i = 0; i < len; i++) {
+            if (i >= frames.length) {
+                log.error('Total surpasses frame count');
+                break;
+            }
+
+            if (this.frameCache[start + i] === undefined) {
+                this.frameCache[start + i] = frames[i];
+
+                // Mark the frame cache
+                if (!this.time.current.hasKey(start + i)) {
+                    this.time.current.setKey(start + i, 'cached-frame');
+                }
+            }
+        }
+
+        // Dump results
+        log.debug('frameCache', Object.keys(this.frameCache));
     }
 
+    /**
+     * Callback for when WorkerPool extracts additional video metadata
+     */
     onWorkerMetadata(metadata) {
         log.info(metadata);
+
+        // Now that we have video data, we're ready to start editing
+        this.setState({
+            fps: metadata.fps,
+            loading: false
+        });
     }
 
     /**
@@ -156,6 +198,10 @@ class App extends React.Component {
             this.frame = frame;
 
             // TODO: Render cached frame, if present
+
+            if (this.frameCache[frame]) {
+                this.cacheImage.current.src = this.frameCache[frame];
+            }
         }
     }
 
@@ -235,6 +281,9 @@ class App extends React.Component {
         // Add a key to TimeSlider immediately to let the
         // user know that their line created a new key frame
         this.time.current.setKey(frame, 'draw-frame');
+
+        // Start caching frames around this frame (1 seconds both directions)
+        this.workers.current.extractFrames(frame, 5 * this.state.fps);
     }
 
     /**
@@ -257,6 +306,15 @@ class App extends React.Component {
     }
 
     /**
+     * Click callback to add more workers to WorkerPool
+     */
+    onAddWebWorker() {
+        this.setState({
+            totalWebWorkers: this.state.totalWebWorkers + 1
+        });
+    }
+
+    /**
      * Swap Draw content to match the given frame
      *
      * This will serialize and store the current state of the Draw
@@ -272,13 +330,17 @@ class App extends React.Component {
         if (!this.draw.current.isEmpty()) {
             this.time.current.setKey(prevFrame, 'draw-frame');
             this.drawCache[prevFrame] = this.draw.current.serialize();
-
-            // TODO: Run the video caching around this key
         } else {
             // Canvas is empty - make sure we didn't still have anything
             // cached or keyed to indicate that there is draw content.
             delete this.drawCache[prevFrame];
-            this.time.current.deleteKey(prevFrame);
+
+            // Reset to prior key color
+            if (this.frameCache[prevFrame]) {
+                this.time.current.setKey(prevFrame, 'cached-frame');
+            } else {
+                this.time.current.deleteKey(prevFrame);
+            }
         }
 
         this.draw.current.reset();
@@ -288,7 +350,7 @@ class App extends React.Component {
             this.draw.current.deserialize(this.drawCache[frame]);
         }
 
-        // Update ghost <Draw> components both forward and back from the current frame
+        // Update ghost <Draw> components
         this.updateGhosting();
     }
 
@@ -308,8 +370,9 @@ class App extends React.Component {
         }
 
         this.setState({
+            loading: true,
+
             frame: 0,
-            ready: false,
             playing: false,
             speed: 1,
             min: 0,
@@ -327,20 +390,16 @@ class App extends React.Component {
         // Will trigger a new onVideoReady call on success
         // and update the state range
         this.video.current.load(url);
-        // this.videoCache.current.load(url);
 
-        // Clear all loaded draw frames
+        // Clear caches
         this.draw.current.reset();
         this.drawCache = {};
-
-        // if (this.frame.contentWindow.load) {
-        //     this.frame.contentWindow.load(url);
-        // }
+        this.frameCache = {};
 
         if (file instanceof File) {
             this.workers.current.load(file);
         } else {
-            log.warn('Skipping WorkerPool load for non-local source file');
+            log.warning('Skipping WorkerPool load for non-local source file');
         }
     }
 
@@ -396,6 +455,12 @@ class App extends React.Component {
         return parseInt(frames[i], 10);
     }
 
+    /**
+     * Change the rendered content for previous ghost frames
+     *
+     * Ghosting will render `props.ghostLayers` previous draw frames
+     * under the current frame - each with decrementing alpha values
+     */
     updateGhosting() {
         const frame = this.video.current.frame;
         let i;
@@ -465,6 +530,12 @@ class App extends React.Component {
     render() {
         return (
             <div className="app">
+                {this.state.loading &&
+                    <div className="app-loader">
+                        Loading source video
+                    </div>
+                }
+
                 <Dropzone onFile={this.onDropFile}>
                     <Transform>
                         <Video ref={this.video}
@@ -476,6 +547,8 @@ class App extends React.Component {
                         />
 
                         {this.renderDrawovers()}
+
+                        <img className="app-cache-image" ref={this.cacheImage} />
                     </Transform>
                 </Dropzone>
 
@@ -499,8 +572,11 @@ class App extends React.Component {
                 />
 
                 <WorkerPool ref={this.workers}
+                    workers={this.state.totalWebWorkers}
                     onMetadata={this.onWorkerMetadata}
                     onFrames={this.onWorkerFrames} />
+
+                <button onClick={this.onAddWebWorker}>Add Web Worker</button>
             </div>
         );
     }
