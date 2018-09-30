@@ -6,19 +6,23 @@ import debug from 'debug';
  */
 class Logger {
     constructor(namespace) {
-        this.debug = debug('drawover:' + namespace);
+        this.print = debug('drawover:' + namespace);
+    }
+
+    debug() {
+        this.print('%c debug ', 'background-color: #aaaaaa; color: #ffffff', ...arguments);
     }
 
     info() {
-        this.debug('%c info ', 'background-color: #66c2cd; color: #ffffff', ...arguments);
+        this.print('%c info ', 'background-color: #66c2cd; color: #ffffff', ...arguments);
     }
 
     warn() {
-        this.debug('%c warning ', 'background-color: #dbaa79; color: #ffffff', ...arguments);
+        this.print('%c warning ', 'background-color: #dbaa79; color: #ffffff', ...arguments);
     }
 
     error() {
-        this.debug('%c error ', 'background-color: #e88388; color: #ffffff', ...arguments);
+        this.print('%c error ', 'background-color: #e88388; color: #ffffff', ...arguments);
     }
 }
 

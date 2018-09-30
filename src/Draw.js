@@ -81,7 +81,7 @@ class Draw extends React.Component {
     }
 
     componentDidMount() {
-        log.info('Call componentDidMount');
+        log.debug('Call componentDidMount');
         // Set initial canvas transformation from props
         this.transform(
             this.props.translate,
@@ -107,7 +107,7 @@ class Draw extends React.Component {
      * Watch for component state updates to update associated canvas elements
      */
     componentDidUpdate(prevProps, prevState) {
-        log.info('Call componentDidUpdate');
+        log.debug('Call componentDidUpdate');
 
         // On tool change or line width change, update our custom cursor to match
         if (prevState.tool !== this.state.tool ||
@@ -261,7 +261,7 @@ class Draw extends React.Component {
      * @param {SyntheticEvent} e
      */
     onTouchStart(e) {
-        log.info('Touch Start', e);
+        log.debug('Touch Start', e);
         const touches = e.changedTouches;
 
         // If we're not tracking touch yet, track first
@@ -282,7 +282,7 @@ class Draw extends React.Component {
      * @param {SyntheticEvent} e
      */
     onTouchEnd(e) {
-        log.info('Touch End', e);
+        log.debug('Touch End', e);
         const touches = e.changedTouches;
 
         // If our tracked touch was lifted, end the line
@@ -301,7 +301,7 @@ class Draw extends React.Component {
      * @param {SyntheticEvent} e
      */
     onTouchCancel(e) {
-        log.info('Touch Cancel', e);
+        log.debug('Touch Cancel', e);
         this.onTouchEnd(e);
     }
 
@@ -1002,7 +1002,7 @@ class Draw extends React.Component {
     }
 
     render() {
-        log.info('Call render');
+        log.debug('Call render');
         // Temp canvas is rendered directly on top of the main canvas so that
         // it gets input events and drawn lines are copied down to the underlying
         // persistent canvas. The temp canvas and all its event handlers will NOT
