@@ -81,7 +81,6 @@ class Draw extends React.Component {
     }
 
     componentDidMount() {
-        log.debug('Call componentDidMount');
         // Set initial canvas transformation from props
         this.transform(
             this.props.translate,
@@ -107,7 +106,6 @@ class Draw extends React.Component {
      * Watch for component state updates to update associated canvas elements
      */
     componentDidUpdate(prevProps, prevState) {
-        log.debug('Call componentDidUpdate');
 
         // On tool change or line width change, update our custom cursor to match
         if (prevState.tool !== this.state.tool ||
@@ -1002,7 +1000,6 @@ class Draw extends React.Component {
     }
 
     render() {
-        log.debug('Call render');
         // Temp canvas is rendered directly on top of the main canvas so that
         // it gets input events and drawn lines are copied down to the underlying
         // persistent canvas. The temp canvas and all its event handlers will NOT
