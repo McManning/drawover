@@ -210,7 +210,7 @@ function reportInfo() {
  * @return {object}
  */
 function extractInfo() {
-    const RE1 = /, (?<width>\d+)x(?<height>\d+).*, (?<fps>[0-9\.]+)\sfps.*, (?<tbr>[0-9\.]+) tbr/gm;
+    const RE1 = /, (\d+)x(\d+).*, ([0-9\.]+)\sfps.*, ([0-9\.]+) tbr/gm;
     let metadata = {};
 
     // `stderr` is used because it'll end up in that stream since reportInfo
@@ -218,10 +218,10 @@ function extractInfo() {
     for (let i = 0; i < stderr.length; i++) {
         match = RE1.exec(stderr[i]);
         if (match) {
-            metadata.width = parseFloat(match.groups.width, 10);
-            metadata.height = parseFloat(match.groups.height, 10);
-            metadata.fps = parseFloat(match.groups.fps, 10);
-            metadata.tbr = parseFloat(match.groups.tbr, 10);
+            metadata.width = parseFloat(match[1], 10);
+            metadata.height = parseFloat(match[2], 10);
+            metadata.fps = parseFloat(match[3], 10);
+            metadata.tbr = parseFloat(match[4], 10);
         }
     }
 
