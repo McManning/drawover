@@ -935,8 +935,13 @@ class Draw extends React.Component {
      * @param {Number} y
      */
     transformedPoint(x, y) {
-        const point = new window.DOMPoint(x, y);
-        return point.matrixTransform(this.matrix.inverse());
+        const inv = this.matrix.inverse();
+
+        return new window.DOMPoint(
+            x * inv.a + y * inv.c + inv.e,
+            x * inv.b + y * inv.d + inv.f,
+            0, 1
+        );
     }
 
     /**

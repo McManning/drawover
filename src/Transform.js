@@ -213,12 +213,17 @@ class Transform extends React.Component {
     /**
      * Convert a DOM-space point to transformation local space
      *
-     * @param {integer} x
-     * @param {integer} y
+     * @param {Number} x
+     * @param {Number} y
      */
     localSpace(x, y) {
-        const point = new window.DOMPoint(x, y);
-        return point.matrixTransform(this.matrix.inverse());
+        const inv = this.matrix.inverse();
+
+        return new window.DOMPoint(
+            x * inv.a + y * inv.c + inv.e,
+            x * inv.b + y * inv.d + inv.f,
+            0, 1
+        );
     }
 
     render() {
