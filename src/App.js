@@ -48,15 +48,11 @@ class App extends React.Component {
         // Eventually, this will be some localStorage object.
         this.drawCache = {};
 
-        // Cache of frame data from ffmpeg, mapped to frame IDs
-        this.frameCache = {};
-
         this.video = React.createRef();
         this.workers = React.createRef();
         this.time = React.createRef();
         this.range = React.createRef();
         this.draw = React.createRef();
-        this.cacheImage = React.createRef();
 
         // Events for <Video>
         this.onVideoReady = this.onVideoReady.bind(this);
@@ -120,26 +116,16 @@ class App extends React.Component {
     onWorkerFrames(start, end, frames) {
         log.info('onWorkerFrames', start, end);
 
-        // Cache frames
-        const len = end - start;
+        this.video.current.cacheFrames(start, end, frames);
+
+        // Also update the time slider to indicate which frames
+        // have a cache loaded (warning: probably slow AF)
+        const len = Math.min(frames.length, end - start);
         for (let i = 0; i < len; i++) {
-            if (i >= frames.length) {
-                log.error('Total surpasses frame count');
-                break;
-            }
-
-            if (this.frameCache[start + i] === undefined) {
-                this.frameCache[start + i] = frames[i];
-
-                // Mark the frame cache
-                if (!this.time.current.hasKey(start + i)) {
-                    this.time.current.setKey(start + i, 'cached-frame');
-                }
+            if (!this.time.current.hasKey(start + i)) {
+                this.time.current.setKey(start + i, 'cached-frame');
             }
         }
-
-        // Dump results
-        log.debug('frameCache', Object.keys(this.frameCache));
     }
 
     /**
@@ -196,12 +182,6 @@ class App extends React.Component {
         if (frame !== this.frame) {
             this.changeDrawover(this.frame, frame);
             this.frame = frame;
-
-            // TODO: Render cached frame, if present
-
-            if (this.frameCache[frame]) {
-                this.cacheImage.current.src = this.frameCache[frame];
-            }
         }
     }
 
@@ -291,17 +271,20 @@ class App extends React.Component {
      * a clear button, or history undo
      */
     onDrawClear() {
-        const frame = this.video.current.frame;
+        const video = this.video.current;
+        const time = this.time.current;
+        const frame = video.frame;
+
         log.info('Draw Clear', frame);
 
         // Remove the empty frame from our cache
         delete this.drawCache[frame];
 
         // Reset to prior key color
-        if (this.frameCache[frame]) {
-            this.time.current.setKey(frame, 'cached-frame');
+        if (video.isFrameCached(frame)) {
+            time.setKey(frame, 'cached-frame');
         } else {
-            this.time.current.deleteKey(frame);
+            time.deleteKey(frame);
         }
     }
 
@@ -326,28 +309,32 @@ class App extends React.Component {
      * @param {Number} frame to display new Draw content
      */
     changeDrawover(prevFrame, frame) {
+        const draw = this.draw.current;
+        const time = this.time.current;
+        const video = this.video.current;
+
         // If there's content, key it and cache the Draw content
-        if (!this.draw.current.isEmpty()) {
-            this.time.current.setKey(prevFrame, 'draw-frame');
-            this.drawCache[prevFrame] = this.draw.current.serialize();
+        if (!draw.isEmpty()) {
+            time.setKey(prevFrame, 'draw-frame');
+            this.drawCache[prevFrame] = draw.serialize();
         } else {
             // Canvas is empty - make sure we didn't still have anything
             // cached or keyed to indicate that there is draw content.
             delete this.drawCache[prevFrame];
 
             // Reset to prior key color
-            if (this.frameCache[prevFrame]) {
-                this.time.current.setKey(prevFrame, 'cached-frame');
+            if (video.isFrameCached(prevFrame)) {
+                time.setKey(prevFrame, 'cached-frame');
             } else {
-                this.time.current.deleteKey(prevFrame);
+                time.deleteKey(prevFrame);
             }
         }
 
-        this.draw.current.reset();
+        draw.reset();
 
         // Try to load current Draw content from the cache
         if (frame in this.drawCache) {
-            this.draw.current.deserialize(this.drawCache[frame]);
+            draw.deserialize(this.drawCache[frame]);
         }
 
         // Update ghost <Draw> components
@@ -394,7 +381,6 @@ class App extends React.Component {
         // Clear caches
         this.draw.current.reset();
         this.drawCache = {};
-        this.frameCache = {};
 
         if (file instanceof File) {
             this.workers.current.load(file);
@@ -547,8 +533,6 @@ class App extends React.Component {
                         />
 
                         {this.renderDrawovers()}
-
-                        <img className="app-cache-image" ref={this.cacheImage} />
                     </Transform>
                 </Dropzone>
 

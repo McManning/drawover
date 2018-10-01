@@ -1,6 +1,9 @@
 
 import React from 'react';
 
+import Logger from './Log';
+const log = new Logger('Video');
+
 /**
  * Video playback canvas. Not to be confused with native <video>
  * (TODO: ...should probably rename this)
@@ -10,6 +13,15 @@ import React from 'react';
  *
  * `onReady` is fired once the media source has been fully loaded
  * `onFrame` callable gets the current frame number as an argument
+ *
+ * Supports frame caching (by way of being fed frames from an external source
+ * such as an ffmpeg web worker or remote server)
+ *
+ * When this component has a cached version of a video frame, it will render
+ * the cached frame before the original `video` element catches up - and then
+ * replaces itself with the source frame once caught up. This allows
+ * substantially faster scrubbing for video sources that may be complete
+ * garbage at scrubbing in the browser otherwise (i.e.: everything).
  */
 class Video extends React.Component {
     constructor(props) {
@@ -18,10 +30,12 @@ class Video extends React.Component {
         this.onVideoLoad = this.onVideoLoad.bind(this);
         this.onVideoSeeked = this.onVideoSeeked.bind(this);
         this.onAnimFrame = this.onAnimFrame.bind(this);
+        this.onImageLoad = this.onImageLoad.bind(this);
 
         this.video = React.createRef();
         this.canvas = React.createRef();
         this.backbuffer = React.createRef();
+        this.image = React.createRef();
 
         // Canvas context
         this.context = null;
@@ -33,12 +47,18 @@ class Video extends React.Component {
             start: 0,
             end: 0
         };
+
+        // Cached frame image URIs - by frame #
+        this.frameCache = {};
+        this.cacheFrameReady = false;
+        this.videoFrameReady = false;
     }
 
     componentDidMount() {
-        // Don't do anything until the video is ready
         this.video.current.addEventListener('loadeddata', this.onVideoLoad, false);
         this.video.current.addEventListener('seeked', this.onVideoSeeked, false);
+
+        this.image.current.addEventListener('load', this.onImageLoad, false);
 
         // Set initial canvas transformation from props
         this.transform(
@@ -90,9 +110,22 @@ class Video extends React.Component {
     }
 
     /**
-     * On seek - update our canvas with the new frame
+     * On seek - update our canvas with the new frame, overriding
+     * the cached frame that's possibly already rendered
      */
     onVideoSeeked() {
+        this.videoFrameReady = true;
+        this.drawCurrentFrame();
+    }
+
+    /**
+     * Callback for when the cache frame <img> src finishes loading
+     *
+     * This will render the cached image to canvas immediately,
+     * assuming the video source has not yet caught up.
+     */
+    onImageLoad() {
+        this.cacheFrameReady = true;
         this.drawCurrentFrame();
     }
 
@@ -110,9 +143,12 @@ class Video extends React.Component {
     /**
      * Load a new source to be played
      *
+     * This will also clear the cache of the previously loaded source
+     *
      * @param {string} src data to load
      */
     load(src) {
+        this.frameCache = {};
         this.video.current.src = src;
     }
 
@@ -203,18 +239,33 @@ class Video extends React.Component {
 
     /**
      * Copy the current video frame to our canvas.
+     *
+     * If there is a cached frame ready to render and the video hasn't caught up,
+     * the cached frame will render first. For testing, we'll render the cache
+     * if it exists and ignore the video.
      */
     drawCurrentFrame() {
         const ctx = this.canvas.current.getContext('2d');
         // const backbufferContext = this.backbuffer.current.getContext('2d');
 
-        ctx.drawImage(
-            this.video.current,
-            0,
-            0,
-            this.video.current.videoWidth,
-            this.video.current.videoHeight
-        );
+        // Draw the cached frame if we have it and no higher quality source
+        // frame to draw (video still seeking)
+        if (this.cacheFrameReady && !this.videoFrameReady) {
+            ctx.drawImage(
+                this.image.current,
+                0,
+                0
+                // width height?
+            );
+        } else {
+            ctx.drawImage(
+                this.video.current,
+                0,
+                0,
+                this.video.current.videoWidth,
+                this.video.current.videoHeight
+            );
+        }
 
         // If there's an event handler for frame changes, call it.
         if (this.frame !== this.previousFrame) {
@@ -232,6 +283,39 @@ class Video extends React.Component {
      */
     skip(count) {
         this.frame = this.frame + count;
+    }
+
+    /**
+     * Load a series of URIs as frame caches
+     *
+     * If the series is longer than `len(end - start)`, anything
+     * outside that range will be discarded.
+     *
+     * Any existing cache will be overwritten by the new frames
+     *
+     * @param {Number} start frame number of the URIs
+     * @param {Number} end frame number of the URIs
+     * @param {array} frames series of URIs to cache, 0 indexed
+     */
+    cacheFrames(start, end, frames) {
+        // TODO: Faster than this loop
+        const len = Math.min(frames.length, end - start);
+
+        for (let i = 0; i < len; i++) {
+            this.frameCache[start + i] = frames[i];
+        }
+
+        // Dump results for debugging
+        log.debug('frameCache', Object.keys(this.frameCache));
+    }
+
+    /**
+     * Returns true if the given frame has been cached from any source
+     *
+     * @return {boolean}
+     */
+    isFrameCached(frame) {
+        return this.frameCache[frame] !== undefined;
     }
 
     /**
@@ -312,6 +396,19 @@ class Video extends React.Component {
     set frame(val) {
         const frame = this.clampFrame(val);
         this.video.current.currentTime = (frame + 1) / this.props.fps;
+        this.videoFrameReady = false;
+
+        // If the frame is in our cache, load it into the worker <img>
+        // and flag the engine to render that image once ready
+        // if (this.isFrameCached(frame)) {
+        //     this.image.current.src = this.frameCache[frame];
+        //     this.cacheFrameReady = true;
+        // }
+
+        this.cacheFrameReady = this.isFrameCached(frame);
+        if (this.cacheFrameReady) {
+            this.image.current.src = this.frameCache[frame];
+        }
     }
 
     get speed() {
@@ -340,10 +437,19 @@ class Video extends React.Component {
 
                 <canvas ref={this.backbuffer} style={{ display: 'none' }}></canvas>
 
-                <video ref={this.video}
-                    width={this.props.width} height={this.props.height}
-                    muted loop
-                ></video>
+                <div class="video-sources">
+                    <div class="video-source">
+                        <div class="video-source-label">Original Video</div>
+                        <video className="video-source-render"
+                            ref={this.video} muted loop
+                        ></video>
+                    </div>
+
+                    <div class="video-source">
+                        <div class="video-source-label">Frame Cache</div>
+                        <img className="video-source-render" ref={this.image} />
+                    </div>
+                </div>
             </div>
         );
     }
