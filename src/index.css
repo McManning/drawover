@@ -271,3 +271,31 @@ li.is-undone {
 .dropzone.is-active .dropzone-overlay {
     display: flex;
 }
+
+
+
+.video-sources {
+    position: absolute;
+    right: 0;
+    top: 0;
+
+    border: 1px solid #000;
+}
+
+.video-source-render {
+    width: 400px;
+    height: auto;
+}
+
+
+.video-source {
+    position: relative;
+}
+
+.video-source-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: #000;
+    color: #fff;
+}
