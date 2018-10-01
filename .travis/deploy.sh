@@ -36,7 +36,13 @@ ENCRYPTED_KEY=${!ENCRYPTED_KEY_VAR}
 ENCRYPTED_IV=${!ENCRYPTED_IV_VAR}
 
 echo "Decrypting private key"
-echo $DEPLOY_KEY_ENC | base64 -d | openssl aes-256-cbc -K $ENCRYPTED_KEY -iv $ENCRYPTED_IV -out "$DEPLOY_KEY" -d
+echo $DEPLOY_KEY_ENC | \
+    base64 -d | \
+    openssl aes-256-cbc \
+        -K $ENCRYPTED_KEY \
+        -iv $ENCRYPTED_IV \
+        -out "$DEPLOY_KEY" -d
+
 chmod 600 "$DEPLOY_KEY"
 
 echo -e "Host $DEPLOY_HOST\n\tStrictHostKeyChecking no\nPasswordAuthentication no" >> ~/.ssh/config
@@ -48,14 +54,10 @@ ssh-add "$DEPLOY_KEY"
 # echo "Connecting to target host"
 # ssh -p $DEPLOY_PORT "$DEPLOY_USER@$DEPLOY_HOST" pwd
 
+# TODO: Replace rsync with an scp zip, push, unzip, and atomic swap.
 echo "Starting rsync to $DEPLOY_ROOT"
 rsync -r --delete-after --quiet -e "ssh -p $DEPLOY_PORT" \
     $TRAVIS_BUILD_DIR/$DEPLOY_PATH "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_ROOT"
 
 echo "Dumping file list"
 ssh -p $DEPLOY_PORT "$DEPLOY_USER@$DEPLOY_HOST" find .
-
-# Note: rsync probably not the best option since we need a zero-downtime deployment.
-# Probably do the ORIS thing and deploy to a staging area then hot swap once complete.
-
-# zipping, scp'ing, and swapping over to a production might be a better solution for most apps.
