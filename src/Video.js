@@ -437,16 +437,16 @@ class Video extends React.Component {
 
                 <canvas ref={this.backbuffer} style={{ display: 'none' }}></canvas>
 
-                <div class="video-sources">
-                    <div class="video-source">
-                        <div class="video-source-label">Original Video</div>
+                <div className="video-sources">
+                    <div className="video-source">
+                        <div className="video-source-label">Original Video</div>
                         <video className="video-source-render"
                             ref={this.video} muted loop
                         ></video>
                     </div>
 
-                    <div class="video-source">
-                        <div class="video-source-label">Frame Cache</div>
+                    <div className="video-source">
+                        <div className="video-source-label">Frame Cache</div>
                         <img className="video-source-render" ref={this.image} />
                     </div>
                 </div>
