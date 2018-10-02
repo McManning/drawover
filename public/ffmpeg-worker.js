@@ -144,6 +144,9 @@ function startJob(metadata, start, end) {
     //     '-an', '%d.raw'
     // ];
 
+    var now = new Date();
+    console.log('Starting FFMPEG');
+
     var result = ffmpeg_run({
         print: printStdout,
         printErr: printStderr,
@@ -151,6 +154,8 @@ function startJob(metadata, start, end) {
         arguments: args,
         files: files
     });
+
+    console.log('Finished FFMPEG in', (new Date() - now), 'Creating Blobs');
 
     // Convert frames to ImageData objects before handing off to the main thread
     var frames = [];
@@ -166,6 +171,8 @@ function startJob(metadata, start, end) {
         frames.push(URL.createObjectURL(blob));
     }
 
+    console.log('Blobs done. Sending to main thread');
+
     postMessage({
         type: 'frames',
         start: start,
@@ -174,6 +181,8 @@ function startJob(metadata, start, end) {
         stdout: stdout,
         stderr: stderr
     });
+
+    console.log('Send complete');
 }
 
 /**
