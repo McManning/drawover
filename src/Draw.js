@@ -1,6 +1,8 @@
 
 import React from 'react';
 
+import './Draw.scss';
+
 import Logger from './Log';
 const log = new Logger('Draw');
 

@@ -1,0 +1,21 @@
+
+// Layout composition of components
+body {
+    margin: 0;
+    padding: 0;
+    font-family: sans-serif;
+}
+
+.draw {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.draw canvas {
+    border: none;
+}
+
+.transform {
+    position: relative;
+}

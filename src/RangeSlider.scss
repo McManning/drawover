@@ -1,0 +1,45 @@
+
+.range-slider {
+    display: flex;
+    flex-direction: row;
+    margin: 2rem;
+
+    margin-top: 4rem;
+}
+
+.range-slider .noUi-target {
+    flex: 1;
+    margin: 0 2rem;
+}
+
+
+/* mockup of slider styles (maya-ish) */
+
+.range-slider .noUi-horizontal .noUi-handle-lower {
+    box-shadow: none;
+    border: none;
+    background: red;
+
+    top: 2px;
+    right: -15px !important;
+
+    width: 13px;
+    height: 13px;
+}
+
+.range-slider .noUi-horizontal .noUi-handle-upper {
+    box-shadow: none;
+    border: none;
+    background: red;
+
+    top: 2px;
+    right: 2px !important;
+
+    width: 13px;
+    height: 13px;
+}
+
+.noUi-horizontal .noUi-handle::before,
+.noUi-horizontal .noUi-handle::after {
+    content: none;
+}

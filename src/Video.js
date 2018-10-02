@@ -1,6 +1,8 @@
 
 import React from 'react';
 
+import './Video.scss';
+
 import Logger from './Log';
 const log = new Logger('Video');
 

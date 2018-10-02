@@ -8,8 +8,9 @@ import Draw from './Draw';
 import Transform from './Transform';
 import Dropzone from './Dropzone';
 import Playback from './Playback';
-
 import WorkerPool from './WorkerPool';
+
+import './App.scss';
 
 import Logger from './Log';
 const log = new Logger('App');

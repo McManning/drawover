@@ -1,7 +1,8 @@
 
 import React from 'react';
-
 import Timecode from './Timecode';
+
+import './TimeSlider.scss';
 
 /**
  * Set keyframes within a time frame, and mark frames

@@ -1,5 +1,6 @@
 
 import React from 'react';
+import './Dropzone.scss';
 
 /**
  * Region that files can be dropped into for loading.

@@ -1,7 +1,8 @@
 
 import React from 'react';
-
 import Timecode from './Timecode';
+
+import './RangeSlider.scss';
 
 /**
  * Component to interactively pick a subset range of frames
