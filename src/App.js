@@ -41,7 +41,7 @@ class App extends React.Component {
             videoSourceUrl: null,
 
             // WorkerPool settings
-            totalWebWorkers: 2
+            totalWebWorkers: 0
         };
 
         // Cache of serialized Draw content per-frame.
@@ -82,6 +82,9 @@ class App extends React.Component {
         this.onWorkerFrames = this.onWorkerFrames.bind(this);
 
         this.onAddWebWorker = this.onAddWebWorker.bind(this);
+
+        // Experimental placeholder
+        this.onFrameCache = this.onFrameCache.bind(this);
     }
 
     componentDidMount() {
@@ -157,6 +160,10 @@ class App extends React.Component {
 
             this.frame = frame;
         }
+    }
+
+    onFrameCache(frame) {
+        this.time.current.setKey(frame, 'cached-frame');
     }
 
     /**
@@ -528,6 +535,7 @@ class App extends React.Component {
                             fps={this.state.fps}
                             onReady={this.onVideoReady}
                             onFrame={this.onFrame}
+                            onFrameCache={this.onFrameCache}
                             width="720" height="480"
                             source="/timecode-2998fps.mp4"
                         />

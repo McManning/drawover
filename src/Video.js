@@ -94,6 +94,11 @@ class Video extends React.Component {
         this.frames.total = totalFrames;
         this.frames.end = totalFrames;
 
+        this.videoWidth = this.video.current.videoWidth;
+        this.videoHeight = this.video.current.videoHeight;
+        this.backbuffer.current.width = this.videoWidth * this.props.backbufferScale;
+        this.backbuffer.current.height = this.videoHeight * this.props.backbufferScale;
+
         // Frame draw tracking
         this.previousFrameTime = Date.now();
         this.previousFrame = -1;
@@ -254,16 +259,17 @@ class Video extends React.Component {
             ctx.drawImage(
                 this.image.current,
                 0,
-                0
-                // width height?
+                0,
+                this.videoWidth,
+                this.videoHeight
             );
         } else {
             ctx.drawImage(
                 this.video.current,
                 0,
                 0,
-                this.video.current.videoWidth,
-                this.video.current.videoHeight
+                this.videoWidth,
+                this.videoHeight
             );
         }
 
@@ -272,6 +278,27 @@ class Video extends React.Component {
             this.previousFrame = this.frame;
             if (this.props.onFrame) {
                 this.props.onFrame(this.frame);
+            }
+
+            // Frame change - and the video is caught up. Try to quickly add a local cache
+            if (this.videoFrameReady) {
+                if (!this.frameCache[this.frame]) {
+                    // HACK: Temporary
+                    // Just want to see perf stats across browsers
+                    const backctx = this.backbuffer.current.getContext('2d');
+
+                    backctx.drawImage(
+                        this.video.current,
+                        0,
+                        0,
+                        this.videoWidth * this.props.backbufferScale,
+                        this.videoHeight * this.props.backbufferScale
+                    );
+
+                    this.frameCache[this.frame] = this.backbuffer.current.toDataURL('image/jpg');
+
+                    this.props.onFrameCache(this.frame);
+                }
             }
         }
     }
@@ -382,7 +409,7 @@ class Video extends React.Component {
      */
     get frame() {
         if (this.video.current) {
-            return Math.round(this.video.current.currentTime * this.props.fps - 1);
+            return Math.round(this.video.current.currentTime * this.props.fps);
         }
 
         return 0;
@@ -395,7 +422,7 @@ class Video extends React.Component {
      */
     set frame(val) {
         const frame = this.clampFrame(val);
-        this.video.current.currentTime = (frame + 1) / this.props.fps;
+        this.video.current.currentTime = frame / this.props.fps;
         this.videoFrameReady = false;
 
         // If the frame is in our cache, load it into the worker <img>
@@ -465,7 +492,9 @@ Video.defaultProps = {
         y: 0
     },
     scale: 1,
-    rotate: 0
+    rotate: 0,
+
+    backbufferScale: 0.8
 };
 
 export default Video;
