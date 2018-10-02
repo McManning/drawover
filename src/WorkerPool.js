@@ -282,19 +282,34 @@ class WorkerPool extends React.Component {
 
         // in general - check if frames are already processed. Because if so - skip work.
 
-        idle[0].postMessage({
-            type: 'job',
-            metadata: this.metadata,
-            start: Math.floor(iframe - distance),
-            end: Math.floor(iframe)
-        });
+        const workPerThread = distance * 2 / idle.length;
 
-        idle[1].postMessage({
-            type: 'job',
-            metadata: this.metadata,
-            start: Math.floor(iframe),
-            end: Math.floor(iframe + distance)
-        });
+        for (let i = 0; i < idle.length; i++) {
+            const start = Math.floor(iframe - distance + (workPerThread * i));
+            const end = Math.floor(start + workPerThread + 1);
+            console.log('Worker', i, 'Range', start, 'to', end);
+
+            idle[i].postMessage({
+                type: 'job',
+                metadata: this.metadata,
+                start: start,
+                end: end
+            })
+        }
+
+        // idle[0].postMessage({
+        //     type: 'job',
+        //     metadata: this.metadata,
+        //     start: Math.floor(iframe - distance),
+        //     end: Math.floor(iframe)
+        // });
+
+        // idle[1].postMessage({
+        //     type: 'job',
+        //     metadata: this.metadata,
+        //     start: Math.floor(iframe),
+        //     end: Math.floor(iframe + distance)
+        // });
     }
 
     render() {
