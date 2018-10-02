@@ -456,6 +456,11 @@ class Video extends React.Component {
     }
 
     render() {
+        let sourcesDisplay = 'none';
+        if (this.props.showSources) {
+            sourcesDisplay = 'block';
+        }
+
         return (
             <div className="video">
                 <canvas ref={this.canvas}
@@ -464,7 +469,7 @@ class Video extends React.Component {
 
                 <canvas ref={this.backbuffer} style={{ display: 'none' }}></canvas>
 
-                <div className="video-sources">
+                <div className="video-sources" style={{ display: sourcesDisplay }}>
                     <div className="video-source">
                         <div className="video-source-label">Original Video</div>
                         <video className="video-source-render"
@@ -474,7 +479,7 @@ class Video extends React.Component {
 
                     <div className="video-source">
                         <div className="video-source-label">Frame Cache</div>
-                        <img className="video-source-render" ref={this.image} />
+                        <img alt="frame" className="video-source-render" ref={this.image} />
                     </div>
                 </div>
             </div>
@@ -494,7 +499,9 @@ Video.defaultProps = {
     scale: 1,
     rotate: 0,
 
-    backbufferScale: 0.8
+    backbufferScale: 0.8,
+
+    showSources: false
 };
 
 export default Video;
