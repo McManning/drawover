@@ -1,11 +1,11 @@
 language: node_js
 node_js:
   - "stable"
-env:
-  global:
-    - DEPLOY_HOST=sybolt.com
-    - DEPLOY_PORT=2222
-    - DEPLOY_PATH=build
+# env:
+#   global:
+#     - DEPLOY_HOST=sybolt.com
+#     - DEPLOY_PORT=2222
+#     - DEPLOY_PATH=build
 cache:
   directories:
     - node_modules
@@ -13,9 +13,16 @@ script:
   # - cd .
   # - npm test
   - npm run build
+# deploy:
+#   provider: script
+#   script: bash .travis/deploy.sh
+#   skip_cleanup: true # preserve build artifacts
+#   on:
+#     branch: travis-tests
 deploy:
-  provider: script
-  script: bash .travis/deploy.sh
-  skip_cleanup: true # preserve build artifacts
+  provider: pages
+  local-dir: build
+  skip-cleanup: true
+  github-token: $GITHUB_TOKEN
   on:
-    branch: travis-tests
+    branch: master
