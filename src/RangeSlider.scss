@@ -1,45 +1,97 @@
 
+@import 'theme';
+
 .range-slider {
     display: flex;
     flex-direction: row;
-    margin: 2rem;
 
-    margin-top: 4rem;
+    margin: 0;
+  
+    input[name="min"] {
+        margin-right: $component-spacing;
+    }
+
+    input[name="max"] {
+        margin-left: $component-spacing;
+    }
+
+    .noUi-target {
+        flex: 1;
+
+        border: none;
+        border-radius: 0;
+        background: #2A2E3B;
+        box-shadow: none;
+        height: 30px;
+    
+        border: 1px solid #3b4a60;
+        box-sizing: content-box;
+    
+        padding: 0 2px;
+        margin: 0 $component-spacing;
+    }
+    
+    .noUi-connect {
+        background: #424A60;
+        height: 26px;
+        top: 2px;
+    }
+
+    .noUi-horizontal .noUi-handle {
+        background: #B0B4BD;
+        border: none;
+        box-shadow: none;
+
+        width: 20px;
+        height: 20px;
+        top: 5px;
+
+        &:focus {
+            outline: none;
+        }
+    }
+        
+    .noUi-horizontal .noUi-handle::before,
+    .noUi-horizontal .noUi-handle::after {
+        content: none;
+    }
+
+    .noUi-horizontal .noUi-handle-lower {
+        right: -22px !important;
+    }
+
+    .noUi-horizontal .noUi-handle-upper {
+        right: 2px !important;
+    }
+
+    .noUi-tooltip {
+        font-size: 0.75em;
+        color: white;
+        background: none;
+        border: none;
+    }
+
+    .noUi-handle .noUi-tooltip {
+        left: 0;
+        top: 3px;
+        bottom: unset;
+        padding: 0;
+
+        // We null out pointer events to allow clicks
+        // to pass through to the slider bar behind the label
+        pointer-events: none;
+    }
+
+    .noUi-handle-upper .noUi-tooltip {
+        transform: translate(-110%, 0);
+    }
+
+    .noUi-handle-lower .noUi-tooltip {
+        transform: translate(40%, 0);
+    }
+
+    .noUi-handle.is-outside .noUi-tooltip {
+        display: none;
+    }
 }
 
-.range-slider .noUi-target {
-    flex: 1;
-    margin: 0 2rem;
-}
-
-
-/* mockup of slider styles (maya-ish) */
-
-.range-slider .noUi-horizontal .noUi-handle-lower {
-    box-shadow: none;
-    border: none;
-    background: red;
-
-    top: 2px;
-    right: -15px !important;
-
-    width: 13px;
-    height: 13px;
-}
-
-.range-slider .noUi-horizontal .noUi-handle-upper {
-    box-shadow: none;
-    border: none;
-    background: red;
-
-    top: 2px;
-    right: 2px !important;
-
-    width: 13px;
-    height: 13px;
-}
-
-.noUi-horizontal .noUi-handle::before,
-.noUi-horizontal .noUi-handle::after {
-    content: none;
-}

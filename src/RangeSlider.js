@@ -64,7 +64,29 @@ class RangeSlider extends React.Component {
 
         this.slider = this.ref.current.noUiSlider;
 
+        // Keep some DOM references for later update calculations
+        this.connector = this.slider.target.getElementsByClassName('noUi-connect')[0];
+        this.lowerHandle = this.slider.target.getElementsByClassName('noUi-handle-lower')[0];
+        this.upperHandle = this.slider.target.getElementsByClassName('noUi-handle-upper')[0];
+
         this.slider.on('update', this.onUpdateSlider);
+
+        // Override event handling for the tooltips to prevent propagation
+        // (so click-dragging a tooltip won't function - only the handles will)
+        [].forEach.call(this.slider.target.getElementsByClassName('noUi-tooltip'), (el) => {
+            el.addEventListener('mousemove', RangeSlider.noop, true);
+            el.addEventListener('mousedown', RangeSlider.noop, true);
+        });
+    }
+
+    /**
+     * No-op event handler to stop event propagation when needed
+     * 
+     * @param {Event} e 
+     */
+    static noop(e) {
+        e.stopPropagation();
+        return false;
     }
 
     /**
@@ -113,11 +135,45 @@ class RangeSlider extends React.Component {
         }
     }
 
+    /**
+     * Determine where and how to render handle labels based on the slider
+     * 
+     * For "short" sliders, we'll push labels out of the connector, picking
+     * either the lower or upper bound as the target to push based on the 
+     * connector's current position. 
+     */
+    updateHandleLabels() {
+        // > 188px - can fit both labels in the connector
+        // > 118px - can fit a single label in the connector
+        // <= 118px - no labels in the connector 
+        const width = this.connector.getBoundingClientRect().width;
+
+        // Connector interior is big enough for both labels
+        if (width > 188) {
+            this.lowerHandle.classList.remove('is-outside');
+            this.upperHandle.classList.remove('is-outside');
+            return;
+        }
+
+        // Only big enough for one label - pick one
+        if (width > 118) {
+            this.lowerHandle.classList.add('is-outside');
+            this.upperHandle.classList.remove('is-outside');
+            return;
+        }
+
+        // Too small for either label, remove both.
+        this.lowerHandle.classList.add('is-outside');
+        this.upperHandle.classList.add('is-outside');
+    }
+
     onUpdateSlider(values) {
         const start = Math.round(values[0] / this.props.scale);
         const end = Math.round(values[1] / this.props.scale);
 
         this.setState({ start, end });
+
+        this.updateHandleLabels();
 
         // If we have a listener bound, fire a message to it
         if (this.props.onChange) {
@@ -138,11 +194,11 @@ class RangeSlider extends React.Component {
     onChangeEndFrame(e) {
         this.slider.set([null, e.target.value * this.props.scale]);
     }
+    
 
     render() {
         return (
             <div className="range-slider">
-                <br/><br/>
                 <input type="number" name="min" value={Math.round(this.props.min)} readOnly />
                 <input type="number" name="start" value={Math.round(this.state.start)}
                     onChange={this.onChange} onBlur={this.onChangeStartFrame} />

@@ -1,6 +1,10 @@
 
 import React from 'react';
 
+import Icon from './Icon';
+
+import './Playback.scss';
+
 /**
  * Video playback control UI:
  *  - Play/pause
@@ -60,28 +64,34 @@ class Playback extends React.Component {
     render() {
         return (
             <div className="playback">
+                <div className="playback-speed">
+                    <select value={this.props.speed} onChange={this.onSelectSpeed}>
+                        <option value="0.25">0.25x</option>
+                        <option value="0.5">0.5x</option>
+                        <option value="1">1x</option>
+                        <option value="2">2x</option>
+                    </select>
+                    <Icon name="angle-down" />
+                </div>
+
+                <button onClick={() => this.skip(-Number.MAX_SAFE_INTEGER)}><Icon name="fast-backward" /></button>
+                <button onClick={() => this.skip(-1)}><Icon name="step-backward" /></button>
+                <button className="playback-prev-key"><Icon name="step-backward" /></button>
+
                 {!this.props.playing &&
-                    <button onClick={this.onClickPlay}>Play</button>
+                    <button onClick={this.onClickPlay}><Icon name="play" /></button>
                 }
 
                 {this.props.playing &&
-                    <button onClick={this.onClickPause}>Pause</button>
+                    <button onClick={this.onClickPause}><Icon name="pause" /></button>
                 }
 
-                <button onClick={() => this.skip(1)}>+1</button>
-                <button onClick={() => this.skip(-1)}>-1</button>
-                <button onClick={() => this.skip(5)}>+5</button>
-                <button onClick={() => this.skip(-5)}>-5</button>
+                {/* <button onClick={() => this.skip(5)}>+5</button>
+                <button onClick={() => this.skip(-5)}>-5</button> */}
 
-                <button onClick={() => this.skip(-Number.MAX_SAFE_INTEGER)}>Start</button>
-                <button onClick={() => this.skip(Number.MAX_SAFE_INTEGER)}>End</button>
-
-                <select value={this.props.speed} onChange={this.onSelectSpeed}>
-                    <option value="0.25">0.25x</option>
-                    <option value="0.5">0.5x</option>
-                    <option value="1">1x</option>
-                    <option value="2">2x</option>
-                </select>
+                <button className="playback-next-key"><Icon name="step-forward" /></button>
+                <button onClick={() => this.skip(1)}><Icon name="step-forward" /></button>
+                <button onClick={() => this.skip(Number.MAX_SAFE_INTEGER)}><Icon name="fast-forward" /></button>
             </div>
         );
     }
