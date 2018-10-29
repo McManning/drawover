@@ -287,19 +287,19 @@ class Video extends React.Component {
                 if (!this.frameCache[this.frame]) {
                     // HACK: Temporary
                     // Just want to see perf stats across browsers
-                    const backctx = this.backbuffer.current.getContext('2d');
+                    // const backctx = this.backbuffer.current.getContext('2d');
 
-                    backctx.drawImage(
-                        this.video.current,
-                        0,
-                        0,
-                        this.videoWidth * this.props.backbufferScale,
-                        this.videoHeight * this.props.backbufferScale
-                    );
+                    // backctx.drawImage(
+                    //     this.video.current,
+                    //     0,
+                    //     0,
+                    //     this.videoWidth * this.props.backbufferScale,
+                    //     this.videoHeight * this.props.backbufferScale
+                    // );
 
-                    this.frameCache[this.frame] = this.backbuffer.current.toDataURL('image/jpg');
+                    // this.frameCache[this.frame] = this.backbuffer.current.toDataURL('image/jpg');
 
-                    this.props.onFrameCache(this.frame);
+                    // this.props.onFrameCache(this.frame);
                 }
             }
         }
