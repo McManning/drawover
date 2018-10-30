@@ -9,6 +9,7 @@ import Transform from './Transform';
 import Dropzone from './Dropzone';
 import Playback from './Playback';
 import WorkerPool from './WorkerPool';
+import Icon from './Icon';
 
 import './App.scss';
 
@@ -20,6 +21,8 @@ class App extends React.Component {
         super(props);
 
         this.state = {
+            isNewSession: true,
+
             fps: 29.98,
             playing: false,
 
@@ -382,6 +385,7 @@ class App extends React.Component {
 
         this.setState({
             loading: true,
+            isNewSession: false,
 
             frame: 0,
             playing: false,
@@ -549,6 +553,13 @@ class App extends React.Component {
                 } */}
 
                 <div className="app-canvas" ref={this.canvas}>
+                    {this.state.isNewSession && 
+                        <div className="app-new-session">
+                            <p>Drop an MP4 or WebM to get started</p>
+                            <Icon name="film" />
+                        </div>
+                    }         
+
                     <Dropzone onFile={this.onDropFile}>
                         <Transform>
                             <Video ref={this.video}

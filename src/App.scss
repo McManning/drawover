@@ -32,6 +32,8 @@
     flex-direction: column;
 
     .app-canvas {
+        position: relative;
+
         flex-grow: 1;
         background: $dark-0;
         overflow: hidden;
@@ -54,4 +56,28 @@
 
 .range-slider {
     flex-grow: 1;
+}
+
+.app-new-session {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+ 
+    align-items: center;
+    justify-content: center;
+
+    font-size: 3rem;
+
+    color: $lightgrey;
+
+    .fas {
+        font-size: 15rem;
+        padding-top: 5rem;
+        color: $green;
+    }
 }
