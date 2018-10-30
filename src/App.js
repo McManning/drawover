@@ -42,7 +42,12 @@ class App extends React.Component {
             videoSourceUrl: null,
 
             // WorkerPool settings
-            totalWebWorkers: 0
+            totalWebWorkers: 0,
+
+            canvas: {
+                width: 800,
+                height: 600
+            }
         };
 
         // Cache of serialized Draw content per-frame.
@@ -54,6 +59,7 @@ class App extends React.Component {
         this.time = React.createRef();
         this.range = React.createRef();
         this.draw = React.createRef();
+        this.canvas = React.createRef();
 
         // Events for <Video>
         this.onVideoReady = this.onVideoReady.bind(this);
@@ -89,11 +95,21 @@ class App extends React.Component {
     }
 
     componentDidMount() {
-
+        this.updateCanvasDimensions();
     }
 
-    componentDidUpdate(prevProps, prevState) {
-
+    /**
+     * Update calculated dimensions of the canvas region
+     * 
+     * Called on initialization and window resize events
+     */
+    updateCanvasDimensions() {
+        this.setState({
+            canvas: {
+                width: this.canvas.current.clientWidth,
+                height: this.canvas.current.clientHeight
+            }
+        });
     }
 
     /**
@@ -495,9 +511,10 @@ class App extends React.Component {
             components.push(
                 <Draw key={'ghostBack' + i}
                     ref={'ghostBack' + i}
-                    width="720" height="480"
                     readonly={true}
                     opacity={opacity}
+                    width={this.state.canvas.width} 
+                    height={this.state.canvas.height}
                 />
             );
 
@@ -512,9 +529,10 @@ class App extends React.Component {
 
         components.push(
             <Draw key={'main'} ref={this.draw}
-                width="720" height="480"
                 onDraw={this.onDrawDraw}
                 onClear={this.onDrawClear}
+                width={this.state.canvas.width} 
+                height={this.state.canvas.height}
             />
         );
 
@@ -530,7 +548,7 @@ class App extends React.Component {
                     </div>
                 } */}
 
-                <div className="app-canvas">
+                <div className="app-canvas" ref={this.canvas}>
                     <Dropzone onFile={this.onDropFile}>
                         <Transform>
                             <Video ref={this.video}
@@ -538,8 +556,8 @@ class App extends React.Component {
                                 onReady={this.onVideoReady}
                                 onFrame={this.onFrame}
                                 onFrameCache={this.onFrameCache}
-                                width="720" height="480"
-                                source="/timecode-2998fps.mp4"
+                                width={this.state.canvas.width} 
+                                height={this.state.canvas.height}
                             />
 
                             {this.renderDrawovers()}
