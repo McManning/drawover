@@ -1,6 +1,6 @@
 
 import React from 'react';
-import Timecode from './Timecode';
+import Timecode from './utility/Timecode';
 
 import './TimeSlider.scss';
 
@@ -48,7 +48,7 @@ class TimeSlider extends React.Component {
 
     componentDidMount() {
         // Setup noUiSlider
-        window.noUiSlider.create(this.ref.current, {
+        const slider = noUiSlider.create(this.ref.current, {
             start: this.state.current,
             step: 1,
 
@@ -140,7 +140,7 @@ class TimeSlider extends React.Component {
 
     /**
      * Update the CSS width of the handle to match width of frames.
-     * 
+     *
      * Note that `min-width` is used within our CSS to ensure the handle doesn't underflow
      * and become unclickable by the end user
      */

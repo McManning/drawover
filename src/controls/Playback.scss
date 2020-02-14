@@ -1,5 +1,5 @@
 
-@import 'theme';
+@import '../theme';
 
 .playback {
     // Mimicing fa-stack implicitely for all buttons
@@ -14,7 +14,7 @@
 
         background: none;
         border: none;
-        
+
         width: 32px;
         height: 1em;
 
@@ -73,7 +73,7 @@
         bottom: 0;
         right: 1em;
         top: 2px;
-    
+
         color: #aeb4bd;
-    }    
+    }
 }

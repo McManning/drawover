@@ -1,12 +1,12 @@
 
-@import 'theme';
+@import '../theme';
 
 .range-slider {
     display: flex;
     flex-direction: row;
 
     margin: 0;
-  
+
     input[name="min"] {
         margin-right: $component-spacing;
     }
@@ -23,14 +23,14 @@
         background: #2A2E3B;
         box-shadow: none;
         height: 30px;
-    
+
         border: 1px solid #3b4a60;
         box-sizing: content-box;
-    
+
         padding: 0 2px;
         margin: 0 $component-spacing;
     }
-    
+
     .noUi-connect {
         background: #424A60;
         height: 26px;
@@ -50,7 +50,7 @@
             outline: none;
         }
     }
-        
+
     .noUi-horizontal .noUi-handle::before,
     .noUi-horizontal .noUi-handle::after {
         content: none;

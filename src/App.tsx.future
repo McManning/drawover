@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { createRef } from 'react';
 
 import Video from './Video';
 import RangeSlider from './RangeSlider';
@@ -16,53 +16,99 @@ import './App.scss';
 import Logger from './Log';
 const log = new Logger('App');
 
-class App extends React.Component {
-    constructor(props) {
+type AppState = {
+    isNewSession: boolean,
+    fps: number,
+    playing: boolean,
+    loading: boolean,
+    speed: number,
+    min: number,
+    max: number,
+    start: number,
+    end: number,
+
+    /**
+     * List of key markers to send to TimeSlider.
+     * Populated with the frame #'s that we've drawn on
+     */
+    keys: number[],
+
+    videoFilename?: string,
+    videoSourceUrl?: string,
+
+    totalWebWorkers: number,
+
+    canvas: {
+        width: number,
+        height: number,
+    }
+}
+
+type AppProps = {
+    /**
+     * How many drawn frame forward/behind the current
+     * frame should be rendered at once
+     */
+    ghostLayers: number;
+
+    /** How much to decrement opacity per ghost layer */
+    ghostOpacityScale: number;
+}
+
+type DrawCache = {
+
+}
+
+export default class App extends React.Component<AppProps, AppState> {
+    static defaultProps = {
+        ghostLayers: 3,
+        ghostOpacityScale: 0.3
+    };
+
+    public readonly state: AppState = {
+        isNewSession: true,
+
+        fps: 29.98,
+        playing: false,
+
+        loading: false,
+
+        // Video playback speed
+        speed: 1,
+
+        min: 0,
+        max: 1,
+        start: 0,
+        end: 1,
+
+        // List of key markers to send to TimeSlider.
+        // Populated with frame #'s that we draw over
+        keys: [],
+
+        // WorkerPool settings
+        totalWebWorkers: 0,
+
+        canvas: {
+            width: 800,
+            height: 600
+        }
+    };
+
+    private video = createRef<Video>();
+    private workers = createRef<WorkerPool>();
+    private time = createRef<TimeSlider>();
+    private range = createRef<RangeSlider>();
+    private draw = createRef<Draw>();
+    private canvas = createRef<HTMLDivElement>();
+
+    /**
+     * Cache of serialized Draw content per-frame.
+     * Eventually, this will be some localStorage object.
+     */
+    drawCache: DrawCache = {};
+
+    constructor(props: any) {
         super(props);
-
-        this.state = {
-            isNewSession: true,
-
-            fps: 29.98,
-            playing: false,
-
-            loading: false,
-
-            // Video playback speed
-            speed: 1,
-
-            min: 0,
-            max: 1,
-            start: 0,
-            end: 1,
-
-            // List of key markers to send to TimeSlider.
-            // Populated with frame #'s that we draw over
-            keys: [],
-
-            // Video data
-            videoFilename: null,
-            videoSourceUrl: null,
-
-            // WorkerPool settings
-            totalWebWorkers: 0,
-
-            canvas: {
-                width: 800,
-                height: 600
-            }
-        };
-
-        // Cache of serialized Draw content per-frame.
-        // Eventually, this will be some localStorage object.
-        this.drawCache = {};
-
-        this.video = React.createRef();
-        this.workers = React.createRef();
-        this.time = React.createRef();
-        this.range = React.createRef();
-        this.draw = React.createRef();
-        this.canvas = React.createRef();
 
         // Events for <Video>
         this.onVideoReady = this.onVideoReady.bind(this);
@@ -103,16 +149,18 @@ class App extends React.Component {
 
     /**
      * Update calculated dimensions of the canvas region
-     * 
+     *
      * Called on initialization and window resize events
      */
     updateCanvasDimensions() {
-        this.setState({
-            canvas: {
-                width: this.canvas.current.clientWidth,
-                height: this.canvas.current.clientHeight
-            }
-        });
+        if  (this.canvas.current) {
+            this.setState({
+                canvas: {
+                    width: this.canvas.current.clientWidth,
+                    height: this.canvas.current.clientHeight
+                }
+            });
+        }
     }
 
     /**
@@ -123,9 +171,9 @@ class App extends React.Component {
     onVideoReady() {
         this.setState({
             min: 0,
-            max: this.video.current.totalFrames,
+            max: this.video.current?.totalFrames,
             start: 0,
-            end: this.video.current.totalFrames
+            end: this.video.current?.totalFrames
         });
     }
 
@@ -136,16 +184,16 @@ class App extends React.Component {
      * @param {Number} end frame
      * @param {array} frames Frame data
      */
-    onWorkerFrames(start, end, frames) {
+    onWorkerFrames(start: number, end: number, frames) {
         log.info('onWorkerFrames', start, end);
 
-        this.video.current.cacheFrames(start, end, frames);
+        this.video.current?.cacheFrames(start, end, frames);
 
         // Also update the time slider to indicate which frames
         // have a cache loaded (warning: probably slow AF)
         const len = Math.min(frames.length, end - start);
         for (let i = 0; i < len; i++) {
-            if (!this.time.current.hasKey(start + i)) {
+            if (this.time.current && !this.time.current.hasKey(start + i)) {
                 this.time.current.setKey(start + i, 'cached-frame');
             }
         }
@@ -517,7 +565,7 @@ class App extends React.Component {
                     ref={'ghostBack' + i}
                     readonly={true}
                     opacity={opacity}
-                    width={this.state.canvas.width} 
+                    width={this.state.canvas.width}
                     height={this.state.canvas.height}
                 />
             );
@@ -535,7 +583,7 @@ class App extends React.Component {
             <Draw key={'main'} ref={this.draw}
                 onDraw={this.onDrawDraw}
                 onClear={this.onDrawClear}
-                width={this.state.canvas.width} 
+                width={this.state.canvas.width}
                 height={this.state.canvas.height}
             />
         );
@@ -553,12 +601,12 @@ class App extends React.Component {
                 } */}
 
                 <div className="app-canvas" ref={this.canvas}>
-                    {this.state.isNewSession && 
+                    {this.state.isNewSession &&
                         <div className="app-new-session">
                             <p>Drop an MP4 or WebM to get started</p>
                             <Icon name="film" />
                         </div>
-                    }         
+                    }
 
                     <Dropzone onFile={this.onDropFile}>
                         <Transform>
@@ -567,7 +615,7 @@ class App extends React.Component {
                                 onReady={this.onVideoReady}
                                 onFrame={this.onFrame}
                                 onFrameCache={this.onFrameCache}
-                                width={this.state.canvas.width} 
+                                width={this.state.canvas.width}
                                 height={this.state.canvas.height}
                             />
 
@@ -604,21 +652,10 @@ class App extends React.Component {
                         workers={this.state.totalWebWorkers}
                         onMetadata={this.onWorkerMetadata}
                         onFrames={this.onWorkerFrames} />
-                        
+
                     {/* <button onClick={this.onAddWebWorker}>Add Web Worker</button> */}
                 </div>
             </div>
         );
     }
 }
-
-App.defaultProps = {
-    // How many drawn frame forward/behind the current
-    // frame should be rendered at once
-    ghostLayers: 3,
-
-    // How much to decrement opacity per ghost layer
-    ghostOpacityScale: 0.3
-};
-
-export default App;
