@@ -524,52 +524,60 @@ class App extends React.Component {
     render() {
         return (
             <div className="app">
-                {this.state.loading &&
+                {/* {this.state.loading &&
                     <div className="app-loader">
                         Loading source video
                     </div>
-                }
+                } */}
 
-                <Dropzone onFile={this.onDropFile}>
-                    <Transform>
-                        <Video ref={this.video}
+                <div className="app-canvas">
+                    <Dropzone onFile={this.onDropFile}>
+                        <Transform>
+                            <Video ref={this.video}
+                                fps={this.state.fps}
+                                onReady={this.onVideoReady}
+                                onFrame={this.onFrame}
+                                onFrameCache={this.onFrameCache}
+                                width="720" height="480"
+                                source="/timecode-2998fps.mp4"
+                            />
+
+                            {this.renderDrawovers()}
+                        </Transform>
+                    </Dropzone>
+                </div>
+
+                <div className="app-controls">
+                    <div className="app-controls-row">
+                        <TimeSlider ref={this.time}
                             fps={this.state.fps}
-                            onReady={this.onVideoReady}
-                            onFrame={this.onFrame}
-                            onFrameCache={this.onFrameCache}
-                            width="720" height="480"
-                            source="/timecode-2998fps.mp4"
+                            onChange={this.onPickFrame} />
+
+                        <Playback
+                            playing={this.state.playing}
+                            speed={this.state.speed}
+                            onPause={this.onPlaybackPause}
+                            onSkip={this.onPlaybackSkip}
+                            onPlay={this.onPlaybackPlay}
+                            onSpeed={this.onPlaybackSpeed}
                         />
+                    </div>
 
-                        {this.renderDrawovers()}
-                    </Transform>
-                </Dropzone>
+                    <div className="app-controls-row">
+                        <RangeSlider ref={this.range}
+                            fps={this.state.fps}
+                            min={this.state.min}
+                            max={this.state.max}
+                            onChange={this.onPickRange} />
+                    </div>
 
-                <TimeSlider ref={this.time}
-                    fps={this.state.fps}
-                    onChange={this.onPickFrame} />
-
-                <RangeSlider ref={this.range}
-                    fps={this.state.fps}
-                    min={this.state.min}
-                    max={this.state.max}
-                    onChange={this.onPickRange} />
-
-                <Playback
-                    playing={this.state.playing}
-                    speed={this.state.speed}
-                    onPause={this.onPlaybackPause}
-                    onSkip={this.onPlaybackSkip}
-                    onPlay={this.onPlaybackPlay}
-                    onSpeed={this.onPlaybackSpeed}
-                />
-
-                <WorkerPool ref={this.workers}
-                    workers={this.state.totalWebWorkers}
-                    onMetadata={this.onWorkerMetadata}
-                    onFrames={this.onWorkerFrames} />
-
-                <button onClick={this.onAddWebWorker}>Add Web Worker</button>
+                    <WorkerPool ref={this.workers}
+                        workers={this.state.totalWebWorkers}
+                        onMetadata={this.onWorkerMetadata}
+                        onFrames={this.onWorkerFrames} />
+                        
+                    {/* <button onClick={this.onAddWebWorker}>Add Web Worker</button> */}
+                </div>
             </div>
         );
     }

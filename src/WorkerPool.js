@@ -313,11 +313,12 @@ class WorkerPool extends React.Component {
     }
 
     render() {
-        return (
-            <div className="worker-pool">
-                Running ({this.state.totalReady} / {this.props.workers}) Worker Threads
-            </div>
-        );
+        // return (
+        //     <div className="worker-pool">
+        //         Running ({this.state.totalReady} / {this.props.workers}) Worker Threads
+        //     </div>
+        // );
+        return null;
     }
 }
 

@@ -1,0 +1,31 @@
+<html>
+<body>
+<script>
+
+// Crash that DOM!... after a delay :)
+
+setTimeout(function () {
+
+    let total = 10000000;
+
+    while (true) {
+        els = [];
+        for (let i = 0; i < total; i++) {
+            const el = document.createElement('p');
+            el.innerText = 'hello';
+            document.body.appendChild(el);
+            els.push(el);
+        }
+
+        // Undo
+        for (let i = 0; i < total; i++) {
+            els[i].remove();
+        }
+    }
+
+}, 5000);
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,43 @@
+
+Timecode
+
+[h264 @ 0xed2480] Warning: not compiled with thread support, using thread emulation"
+"[aac @ 0xed3010] Warning: not compiled with thread support, using thread emulation"
+"Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'timecode-2998fps.mp4':"
+"  Metadata:"
+"    major_brand     : mp42"
+"    minor_version   : 0"
+"    compatible_brands: isommp42"
+"    creation_time   : 2016-08-25 13:21:43"
+"  Duration: 00:02:00.00, start: 0.000000, bitrate: 1223 kb/s"
+"    Stream #0:0(und): Video: h264 (Main) (avc1 / 0x31637661), yuv420p, 1280x720 [SAR 1:1 DAR 16:9], 1094 kb/s, 29.98 fps, 29.97 tbr, 90k tbn, 59.94 tbc (default)"
+"    Metadata:"
+"      creation_time   : 2016-08-25 13:21:43"
+"      handler_name    : ISO Media file produced by Google Inc."
+"    Stream #0:1(und): Audio: aac (mp4a / 0x6134706D), 44100 Hz, stereo, fltp, 125 kb/s (default)"
+"    Metadata:"
+"      creation_time   : 2016-08-25 13:21:43"
+"      handler_name    : ISO Media file produced by Google Inc."
+"At least one output file must be specified"
+
+
+Big Buck Bunny!
+
+"[vp8 @ 0xed3610] Warning: not compiled with thread support, using thread emulation"
+"[vorbis @ 0xed3c90] Warning: not compiled with thread support, using thread emulation"
+"Input #0, matroska,webm, from 'bigbuckbunny.webm':"
+"  Metadata:"
+"    encoder         : Lavf53.21.0"
+"  Duration: 00:00:33.01, start: 0.000000, bitrate: 570 kb/s"
+"    Stream #0:0: Video: vp8, yuv420p, 640x356, SAR 1:1 DAR 160:89, 25 fps, 25 tbr, 1k tbn, 1k tbc (default)"
+"    Stream #0:1: Audio: vorbis, 44100 Hz, stereo, fltp (default)"
+"At least one output file must be specified"
+"[vp8 @ 0xed3610] Warning: not compiled with thread support, using thread emulation"
+"[vorbis @ 0xed3c90] Warning: not compiled with thread support, using thread emulation"
+"Input #0, matroska,webm, from 'bigbuckbunny.webm':"
+"  Metadata:"
+"    encoder         : Lavf53.21.0"
+"  Duration: 00:00:33.01, start: 0.000000, bitrate: 570 kb/s"
+"    Stream #0:0: Video: vp8, yuv420p, 640x356, SAR 1:1 DAR 160:89, 25 fps, 25 tbr, 1k tbn, 1k tbc (default)"
+"    Stream #0:1: Audio: vorbis, 44100 Hz, stereo, fltp (default)"
+"At least one output file must be specified"

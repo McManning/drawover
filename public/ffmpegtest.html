@@ -1,0 +1,144 @@
+
+<body>
+<style>
+video, canvas {
+    transform: translate3d(42px, -62px, -135px);
+}
+
+img {
+    background-size: contain;
+    width: 320px;
+    height: auto;
+}
+
+</style>
+
+<!-- <video
+    width=640 height=480
+    muted loop
+>
+    <source src="./timecode-2998fps.mp4" />
+    <source src="https://www.html5rocks.com/tutorials/video/basics/Chrome_ImF.mp4"/>
+</video> -->
+
+<!-- <canvas width=640 height=480 /> -->
+
+<script>
+    // Dump ArrayBuffer (supposedly containing a jpeg) to the DOM
+    function arrayBufferToImg(arrayBuffer) {
+        console.log('BUFFER SIZE', arrayBuffer.byteLength);
+
+        let blob = new Blob([arrayBuffer]);
+
+        let image = new Image();
+        image.src = URL.createObjectURL(blob);
+        document.body.appendChild(image);
+    }
+
+    let isWorkerLoaded = false;
+    let inputVideoData = null;
+
+    let start;
+
+    // init worker
+    let worker = new Worker('alt-worker.js');
+    worker.onmessage = function (e) {
+        let message = e.data;
+        switch (message.type) {
+            case 'ready':
+                isWorkerLoaded = true;
+                break;
+            case 'stdout':
+                console.log(message.data);
+                break;
+            case 'start':
+                console.log('WORKER RECEIVE IN ', Date.now() - start);
+                console.log('Worker received command');
+                break;
+            case 'done':
+                console.log('WORKER DONE IN ', Date.now() - start);
+                message.data.forEach((file) => {
+                    console.log(file.name);
+                    arrayBufferToImg(file.data);
+                });
+                break;
+            default:
+                console.error('Unknown message', message.type);
+                break;
+        }
+    }
+
+    worker.onerror = function () {
+        console.error('Worker error', arguments);
+    }
+
+    function listCodecs() {
+        let args = ['-codecs'];
+
+        worker.postMessage({
+            type: 'command',
+            arguments: args
+        });
+    }
+
+    function analyzeVideo() {
+        worker.postMessage({
+            arguments: ['-i input.mp4'],
+            files: [
+                {
+                    name: 'input.mp4',
+                    data: inputVideoData
+                }
+            ]
+        });
+    }
+
+    function sliceAndDice() {
+        let args = [
+            '-ss', '00:00:00.000',
+            '-i', 'input.mp4',
+            // '-vframes', '10',
+            '-vf', 'scale=320:-1',
+            '-f', 'image2',
+            '-an', 'out%d.jpeg'
+        ];
+
+        start = Date.now();
+        worker.postMessage({
+            type: 'command',
+            arguments: args,
+            files: [
+                {
+                    name: 'input.mp4',
+                    data: inputVideoData
+                }
+            ]
+        });
+    }
+
+    function grabAndParseVideo() {
+        // load full video (non-streaming)
+        let xhr = new XMLHttpRequest();
+        xhr.open('get', './timecode-2998fps.mp4');
+        xhr.responseType = 'arraybuffer';
+
+        start = Date.now();
+
+        xhr.onload = function() {
+            let arrayBuffer = this.response;
+            if (arrayBuffer) {
+                inputVideoData = new Uint8Array(arrayBuffer);
+
+                console.log('GOT VIDEO IN: ', Date.now() - start);
+                // analyzeVideo();
+                sliceAndDice();
+            }
+        };
+
+        xhr.send(null);
+    }
+
+    grabAndParseVideo();
+    // listCodecs();
+
+</script>

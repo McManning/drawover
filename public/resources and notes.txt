@@ -1,0 +1,90 @@
+
+
+Low res frames pulled out, displayed while scrubbing. Switching over to high res frames from the source video once available (done scrubbing).
+
+
+FFMPEG all codecs is 7 MB (web ASM).
+
+
+Let's talk about FFMPEG workers.
+
+Run FFMPEG/Asmjs in a service worker to decode the shit out of the input video to create scrub frames.
+
+Let the frontend render the video as normal -
+
+
+ffmpeg -i input.jpg -vf scale=320:-2 output_320.png
+
+
+-i input.webm -vf scale=320:-2 thumb%04d.jpg -hide_banner
+
+
+https://bugs.chromium.org/p/chromium/issues/detail?id=375297
+Potential blob size issues
+
+
+https://bgrins.github.io/videoconverter.js/demo/
+
+-i input.webm -vf scale=320:-2 -f image2 -an out%d.jpeg
+
+    works
+
+https://github.com/bgrins/videoconverter.js
+    What I want, but outdated AF.
+
+    Would need to test against my video though. And then start thinking about how to cut and slice LARGE video files locally added.
+
+    Or at least cut and slice segments of large videos, based on what our time/range sliders are setup to do. Ya know, smart AF.
+
+
+
+
+
+96410ms processing
+1.6 minutes to process.
+
+Ugh.
+
+average: 14000 to 7200 bytes per frame
+
+~27 MB
+
+worker is using 46 MB
+
+
+thread pool of N workers (say 8-10)
+
+each one takes ~10 seconds to parse out 10 seconds of frames, unfortunately.
+
+6 threads = 1 minute of video parsed in 10 seconds (theoretically...)
+12 threads for 2 minutes per 10 seconds.
+
+
+ALTERNATIVELY, re-encode a video for key framing and let playback be BETTER in chrome?
+
+
+Maybe tiling will be fast?
+    http://trac.ffmpeg.org/wiki/How%20to%20take%20multiple%20screenshots%20to%20an%20image%20%28tile,%20mosaic%29
+
+https://jordicenzano.github.io/
+50ms per frame retrieval
+so SLIGHTLY slower than the FFMPEG decoding route BUT also threaded to do multiple @ once so technically faster from user POV
+
+If the files are dropped on a CDN and served fast AF, less of an overhead honestly. But the whole process still requires
+/backend/ persistence to work, which is what I don't want.
+
+
+
+RESOURCE LINKS
+
+https://github.com/bgrins/videoconverter.js/blob/master/demo/terminal.js
+
+https://stackoverflow.com/questions/13574158/number-of-web-workers-limit
+http://www.smartjava.org/content/html5-easily-parallelize-jobs-using-web-workers-and-threadpool
+https://jshakespeare.com/encoding-browser-friendly-video-files-with-ffmpeg
+
+https://github.com/Kagami/ffmpeg.js/issues/10
+https://googlechrome.github.io/samples/service-worker/prefetch-video/
+https://bgrins.github.io/videoconverter.js/demo/
+https://www.bugcodemaster.com/article/extract-images-frame-frame-video-file-using-ffmpeg
+https://trac.ffmpeg.org/wiki/Scaling

@@ -1,0 +1,178 @@
+
+<body>
+<style>
+video, canvas {
+    transform: translate3d(42px, -62px, -135px);
+}
+
+img {
+    background-size: contain;
+    width: 100px;
+    height: auto;
+}
+
+</style>
+
+<video
+    width=640 height=480
+    muted loop
+>
+    <source src="./timecode-2998fps.mp4" />
+    <source src="https://www.html5rocks.com/tutorials/video/basics/Chrome_ImF.mp4"/>
+</video>
+
+<canvas width=640 height=480 />
+
+<script>
+
+let vid = document.getElementsByTagName('video')[0];
+let c = document.getElementsByTagName('canvas')[0];
+let ctx = c.getContext('2d');
+
+// vid.addEventListener('progress', function () {
+//     console.log(vid.currentTime);
+// });
+
+
+let fps = 29.98;
+let frame = 0;
+let waiting = true;
+let lastTime = -1;
+
+let timeToSeek = 0;
+
+// vid.addEventListener('timeupdate', function () {
+//     // console.log(vid.currentTime);
+
+//     // console.log(Date.now() - timeToSeek);
+
+//     if (vid.currentTime === lastTime) {
+//         console.log('SAME TIME', vid.currentTime);
+//     } else {
+//         console.log('OK');
+//         lastTime = vid.currentTime;
+//         waiting = false;
+//     }
+
+//     // Get a huge dump of SAME TIME reports on timeupdate before it flattens out and goes again.
+//     // Does a SAME TIME > OK > CHANGE loop.
+
+// });
+
+vid.addEventListener('loadeddata', function () {
+
+    // vid.play();
+
+    let then = Date.now();
+    let interval = 1000 / fps;
+    let start = then;
+
+    let that = this;
+
+    let buf = vid.buffered;
+    let ranges = buf.length;
+    if (buf.length === 1) {
+        if (buf.start(0) == 0 && buf.end(0) == vid.duration) {
+            console.log('whole video loaded');
+        }
+    }
+
+    lastCurrentTime = -1;
+
+    function anim() {
+        window.requestAnimationFrame(anim);
+
+        if (vid.currentTime !== lastCurrentTime) {
+            console.log(vid.currentTime - lastCurrentTime);
+            lastCurrentTime = vid.currentTime;
+        }
+
+        let now = Date.now();
+        let elapsed = now - then;
+
+        if (elapsed > interval) {
+            then = now - (elapsed % interval);
+
+            // ctx.drawImage(
+            //     vid,
+            //     0,
+            //     0,
+            //     640,
+            //     480
+            // );
+
+            // console.log(vid.currentTime);
+            // frame++;
+            // vid.currentTime = frame / fps;
+            // if (!waiting) {
+            //     console.log('change');
+            //     frame++;
+            //     vid.currentTime = frame / fps;
+
+            //     waiting = true;
+            //     timeToSeek = now;
+            // }
+        }
+    }
+
+    console.log('INSTANCE');
+    // window.requestAnimationFrame(anim);
+
+    // vid.currentTime = 0;
+    // vid.play();
+
+    let blobs = [];
+
+    function saveFrame(blob) {
+        // blobs.push(blob);
+        blobs.push(blob);
+        // async lol.
+        // let image = new Image();
+        // image.src = URL.createObjectURL(blob);
+        // document.body.appendChild(image);
+    }
+
+    // Burn run the video as fast as possible
+    fps = 29.98;
+    frame = 0;
+    lastCurrentTime = -1;
+    // while (frame < 100) {
+    //     if (lastCurrentTime < vid.currentTime) {
+    //         lastCurrentTime = vid.currentTime;
+
+    //         frame++;
+    //         console.log('extract', vid.currentTime);
+    //         vid.play();
+    //         vid.currentTime = frame / fps;
+    //         vid.pause();
+
+    //         // Dump to canvas, blobify, move on
+    //         ctx.drawImage(vid, -300, -128, 1280, 720);
+    //         c.toBlob(saveFrame, 'image/jpeg');
+    //     }
+    // }
+
+    vid.addEventListener('timeupdate', function () {
+        // console.log(vid.currentTime);
+
+        if (lastCurrentTime < vid.currentTime) {
+            lastCurrentTime = vid.currentTime;
+
+            // Dump to canvas, blobify, move on
+            ctx.drawImage(vid, -300, -128, 1280, 720);
+            c.toBlob(saveFrame, 'image/jpeg');
+
+            frame++;
+            vid.currentTime = frame / fps;
+        }
+    });
+
+    vid.currentTime = 0;
+    // console.log(blobs);
+
+}, false);
+
+
+</script>
+
+</body>

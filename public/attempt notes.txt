@@ -1,0 +1,35 @@
+Problem:
+    Browser video scrubbing sucks - not enough key frames in a source video to make scrubbing smooth, and a lot of browser tricks to optimize scrubbing while dropping frames along the way.
+
+Solution attempts:
+    1. Running FFMPEG in a WebWorker to parse out video frames in the background (Via asm.js)
+
+        Problem: Spin-up time for an FFMPEG WebWorker thread was slow. Reading frames via FFMPEG is sllowwwww (slower than playback)
+
+    2. Multiple <video> elements that processed chunks of frames.
+        A job to parse out 100 frames was given to N workers, each worker getting 100/N frames. Each one would skip the video forward to it's chunk, and play the video forward processing chunked frames.
+
+        Problem: Each <video> ran on the same DOM thread as our application - impacting application performance while the each worker worked.
+
+    3. An extension of 2 where we extract the <video> processing to an iframe
+
+        Problem: iframes share the same DOM thread as the main process.
+
+        There *is* a proposal by the Chrome team to do Out-of-Process Iframes (https://www.chromium.org/developers/design-documents/oop-iframes) but it's still experimental and not available across other browsers.
+
+    4. Extracting <video> processing to a separate window altogether.
+
+        Problem: Windows opened via `window.open` will share the same threads as the opener. Using `noopener` gets around that, but we lose the ability to share data between the application thread and the frame processor.
+
+        Extensions to 4 thought about:
+        - using localStorage or IndexedDb as a temporary store. While this may work for serialized frame images, we still don't have the ability to take the local file dropped into the application and hand it off to the worker window (and putting it into some local cache won't be an option as it can be several GB in size).
+        - websocket communication between the two - again, same problem. Also without a server intermediate - don't think you can websocket tabs on the same host?
+
+    5. (UNTESTED) FFMPEG asm.js Multitrack drifting (more threads, less work)
+        - Have each WebWorker "cooked" ahead of time instead of spinning them up per job
+        - Use the same work distribution strategy, but handed off to FFMPEG worker threads instead of <video> elements
+        - Give each worker *less* to do
+
+        The original FFMPEG implementation made the assumption that we would process frames for the *entire* source video prior to doing draw work on it, but as we moved away from it and focusing on frames around drawover frames - FFMPEG processing might be possible again due to us only needing ~2 seconds of video time loaded into frame data (and less so per thread, if we use the same round robin worker model that experiments 2-4 used). If FFMPEG seek time is sufficiently fast, and frame processing time is at most 2x watch time speed, this could be a do-able strategy. By expanding the number of WebWorker threads, we could potentially make good use of CPU threading to get a performance boost.
+
+

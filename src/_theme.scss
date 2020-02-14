@@ -1,0 +1,50 @@
+
+@import "reset";
+
+// Dark blues gradient
+$dark-0: #20252e !default;
+$dark-1: #2a2e3b !default;
+$dark-2: #363b4a !default;
+$dark-3: #424a61 !default;
+$dark-4: #535e7a !default;
+
+// Greyscale
+$dark-grey: #575c66 !default;
+$grey: #b0b4bd !default;
+$white: #ffffff !default;
+
+// Highlights
+// TODO: Rename highlights to purpose over color?
+$green: #37e89c !default;
+$blue: #6666ff !default;
+$yellow: #fed355 !default;
+
+// Global element styles
+input[type="number"], select {
+    background: #282e3b;
+    border: 1px solid #424A60;
+    border-radius: 0px;
+
+    /*  Fix for select border-radius ignored on Chrome
+        Note that it also removes the suffix arrow,
+        but we'll replace that with our own */
+    -webkit-appearance: none;
+    height: 32px;
+    padding: 0 1em;
+    width: 5rem;
+    color: #B0B4BD;
+    position: relative;
+
+    &:focus {
+        outline: none;
+        border: 1px solid $green;
+    }
+    
+    &[readonly] {
+        opacity: 0.5;
+
+        &:focus {
+            border: 1px solid #404a60;
+        }
+    }
+}

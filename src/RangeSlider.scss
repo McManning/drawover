@@ -43,3 +43,79 @@
 .noUi-horizontal .noUi-handle::after {
     content: none;
 }
+
+// Chrome dump!
+
+.range-slider {
+    margin: 0 1rem;
+
+    .noUi-target {
+        border: none;
+        border-radius: 0;
+        background: #2A2E3B;
+        box-shadow: none;
+        height: 30px;
+    
+        border: 1px solid #3b4a60;
+        box-sizing: content-box;
+    
+        padding: 0 2px;
+    }
+    
+
+
+    .noUi-connect {
+        background: #424A60;
+        height: 26px;
+        top: 2px;
+    }
+
+    .noUi-horizontal .noUi-handle {
+        background: #B0B4BD;
+        width: 20px;
+        height: 20px;
+        top: 5px;
+
+        &:focus {
+            outline: none;
+        }
+    }
+    
+    .noUi-horizontal .noUi-handle-lower {
+        right: -22px !important;
+    }
+
+    .noUi-horizontal .noUi-handle-upper {
+        right: 2px !important;
+    }
+
+    .noUi-tooltip {
+        font-size: 0.75em;
+        color: white;
+        background: none;
+        border: none;
+    }
+
+    .noUi-handle .noUi-tooltip {
+        left: 0;
+        top: 3px;
+        bottom: unset;
+        padding: 0;
+
+        // We null out pointer events to allow clicks
+        // to pass through to the slider bar behind the label
+        pointer-events: none;
+    }
+
+    .noUi-handle-upper .noUi-tooltip {
+        transform: translate(-110%, 0);
+    }
+
+    .noUi-handle-lower .noUi-tooltip {
+        transform: translate(40%, 0);
+    }
+
+    .noUi-handle.is-outside .noUi-tooltip {
+        display: none;
+    }
+}

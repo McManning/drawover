@@ -72,3 +72,94 @@
 
     cursor: pointer;
 }
+
+
+
+// More dump from Chrome. TODO: Consolidate styles.
+
+
+.time-slider {
+    margin: 1rem;
+
+    input {
+        margin-left: 1rem;
+    }
+    
+    .time-slider-noui {
+        border: 1px solid #404a60;
+    }
+
+    .noUi-target {
+        border: none;
+        border-radius: 0;
+        background: #2A2E3B;
+        box-shadow: none;
+        height: 32px;
+    }
+
+    .noUi-horizontal .noUi-origin {
+        height: 100%;
+    }
+
+    .noUi-horizontal .noUi-handle {
+        box-shadow: none;
+        right: 0 !important;
+        cursor: ew-resize;
+        transform: translate(100%, 0);
+        border-radius: 0;
+        top: 0;
+        height: 100%;
+        min-width: 3px;
+        background: rgba(79, 94, 123, 0.25);
+
+        &:focus {
+            outline: none;
+        }
+    }
+
+    .noUi-pips {
+        top: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+        pointer-events: none;
+    }
+
+    .noUi-marker  {
+        background: #424A60;
+        bottom: 0;
+        height: 10px;
+    }
+
+    .noUi-value {
+        color: #B0B4BD;
+        font-size: 50%;
+        transform: translate(2px, 0);
+
+        // Add to z-index to render frame #'s over keys at all time
+        z-index: 2;
+    }
+
+    .noUi-horizontal .noUi-tooltip {
+        color: #fff;
+        font-size: 0.75em;
+        background: none;
+        border: none;
+        bottom: 0;
+        left: 0;
+        transform: none;
+        padding: 0;
+        padding-left: 0.5em;
+    }
+    
+    .time-slider-key {
+        height: 100%;
+        box-sizing: border-box;
+        border-right: none;
+    }
+
+    .time-slider-key[data-type="cached-frame"] {
+    /*     background: #363B4A; */
+        background: none;
+    }
+}

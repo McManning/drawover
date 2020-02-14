@@ -1,11 +1,16 @@
 
-// Layout composition of components
-body {
-    margin: 0;
-    padding: 0;
+@import "theme";
+
+.app {
+    // background: #535E79;
+    background: $dark-4;
+    // background: red;
     font-family: sans-serif;
+
+    color: $white;
 }
 
+// Layout composition of components
 .draw {
     position: absolute;
     top: 0;
@@ -18,4 +23,32 @@ body {
 
 .transform {
     position: relative;
+}
+
+
+.app {
+    display: flex;
+    height: 100vh;
+    flex-direction: column;
+}
+
+.app-canvas {
+    flex-grow: 1;
+}
+
+.app-controls {
+    margin-bottom: 1rem;
+}
+
+.app-controls-row {
+    display: flex;
+    flex-direction: row;
+}
+
+.time-slider {
+    flex-grow: 1;
+}
+
+.range-slider {
+    flex-grow: 1;
 }

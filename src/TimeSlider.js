@@ -54,6 +54,9 @@ class TimeSlider extends React.Component {
 
             tooltips: this.getTooltipFormatter(),
 
+            // Snap to position when a handle is clicked
+            behaviour: 'snap',
+
             // Disable slide animations (since we don't "slide" through source frames)
             animate: false,
 
@@ -70,7 +73,11 @@ class TimeSlider extends React.Component {
 
         this.slider = this.ref.current.noUiSlider;
 
+        // Extract the handle element from noUiSlider - we're going to be dynamically adjusting the CSS later
+        this.handle = this.slider.target.getElementsByClassName('noUi-handle')[0];
+
         // Slide is included here so that the event gets fired while "scrubbing"
+        // See the event matrix on: https://refreshless.com/nouislider/events-callbacks/
         this.slider.on('change', this.onSliderChange);
         this.slider.on('slide', this.onSliderChange);
 
@@ -105,8 +112,9 @@ class TimeSlider extends React.Component {
             this.slider.pips(this.getPips(this.state.start, this.state.end));
 
             // Make sure the handle is (in)visible based on whether
-            // or not it's in the updated range
+            // or not it's in the updated range, and that it fits frame sizes
             this.updateHandleVisibility();
+            this.updateHandleWidth();
         }
     }
 
@@ -128,6 +136,19 @@ class TimeSlider extends React.Component {
         } else {
             handle[0].classList.add('is-off-timeline');
         }
+    }
+
+    /**
+     * Update the CSS width of the handle to match width of frames.
+     * 
+     * Note that `min-width` is used within our CSS to ensure the handle doesn't underflow
+     * and become unclickable by the end user
+     */
+    updateHandleWidth() {
+        const { start, end } = this.state;
+        let width = 100 / (end - start) + '%';
+
+        this.handle.style.width = width;
     }
 
     /**
