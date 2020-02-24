@@ -27,7 +27,7 @@ type SliderProps = {
     end: number;
 
     onChange(values: any[]): void;
-    tooltips: [NoUiSliderFormatter, NoUiSliderFormatter];
+    tooltips?: [NoUiSliderFormatter, NoUiSliderFormatter];
 };
 
 /**

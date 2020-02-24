@@ -1,12 +1,14 @@
 import React from 'react';
-import logo from './logo.svg';
 import './App.scss';
 
-import Playback from './controls/Playback';
-import RangeSlider from './controls/RangeSlider';
+import Playback from './video/Playback';
+import RangeSlider from './video/RangeSlider';
 import Slider from './common/Slider';
 
 import Timecode from './utility/Timecode';
+import Draw from './draw/Draw';
+
+const noop = () => 0;
 
 const App = () => (
     <div>
@@ -23,7 +25,14 @@ const App = () => (
             start={0} end={50}
             onChange={(s, e) => console.log(s, e)} /> */}
 
-        <RangeSlider fps={29.98} min={0} max={100} scale={1} onChange={() => 0} />
+        <Draw 
+            width={720}
+            height={480}
+            onDraw={() => console.log('draw')} 
+            onClear={() => console.log('clear')} 
+        />, 
+
+        {/* <RangeSlider fps={29.98} min={0} max={100} scale={1} onChange={() => 0} /> */}
     </div>
 );
 

@@ -1,0 +1,79 @@
+
+@import '../theme';
+
+.playback {
+    // Mimicing fa-stack implicitely for all buttons
+    button {
+        position: relative;
+        outline: none;
+        vertical-align: middle;
+
+        -webkit-transform-origin: center center;
+        transform-origin: center center;
+        text-align: center;
+
+        background: none;
+        border: none;
+
+        width: 32px;
+        height: 1em;
+
+        font-size: 1.25em;
+    }
+
+    button .fas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+
+        vertical-align: middle;
+
+        color: $lightgrey;
+    }
+
+    button.playback-next-key:after {
+        content: '';
+        background: $draw-key-color;
+        position: absolute;
+
+        /* Hacky overlay for coloring part of the SVG. Don't look */
+        top: 0;
+        right: 9px;
+
+        height: 100%;
+        width: 4px;
+        border-radius: 1px;
+    }
+
+    button.playback-prev-key:after {
+        content: '';
+        background: $draw-key-color;
+        position: absolute;
+
+        /* Hacky overlay for coloring part of the SVG. Don't look */
+        top: 0;
+        left: 9px;
+
+        height: 100%;
+        width: 4px;
+        border-radius: 1px;
+    }
+}
+
+.playback-speed {
+    position: relative;
+    display: inline;
+
+    margin-right: $component-spacing;
+
+    .fas {
+        position: absolute;
+        bottom: 0;
+        right: 1em;
+        top: 2px;
+
+        color: #aeb4bd;
+    }
+}

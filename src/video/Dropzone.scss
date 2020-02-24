@@ -1,0 +1,28 @@
+
+.dropzone {
+    position: relative;
+}
+
+.dropzone-overlay {
+    display: none;
+    pointer-events: none;
+
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+
+    background: rgba(0, 0, 0, 0.8);
+
+    color: #FFF;
+    font-size: 2rem;
+}
+
+.dropzone.is-active .dropzone-overlay {
+    display: flex;
+}

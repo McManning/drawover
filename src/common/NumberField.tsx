@@ -8,8 +8,8 @@ type NumberFieldProps = {
     className?: string;
     readOnly?: boolean;
     decimals?: boolean;
-    onChange?(newValue: number): void;
-    onBlur?(): void;
+    onChange?(value: number): void;
+    onBlur?(value: number): void;
 };
 
 const NumberField: React.FC<NumberFieldProps> = ({
@@ -29,7 +29,7 @@ const NumberField: React.FC<NumberFieldProps> = ({
         value={decimals ? value : Math.round(value)}
         readOnly={readOnly}
         onChange={(e) => onChange && onChange(parseInt(e.target.value))}
-        onBlur={onBlur}
+        onBlur={(e) => onBlur && onBlur(parseInt(e.target.value))}
     />
 );
 

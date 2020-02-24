@@ -1,6 +1,7 @@
 {
   "name": "drawover-ts",
   "version": "0.1.0",
+  "homepage": "https://drawover.io",
   "private": true,
   "dependencies": {
     "@testing-library/jest-dom": "^4.2.4",
@@ -15,7 +16,7 @@
     "nouislider": "^14.1.1",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
-    "react-scripts": "3.3.1",
+    "react-scripts": "^3.4.0",
     "typescript": "^3.7.5"
   },
   "scripts": {
